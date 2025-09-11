@@ -135,4 +135,4 @@ CREATE TABLE IF NOT EXISTS interactions (
 	interaction_target 	VARCHAR(50) NOT NULL,
 	user_id				INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	created_at			TIMESTAMP NOT NULL DEFAULT now()
-);
+); --//1  
