@@ -24,7 +24,7 @@ backend/
 │   ├── user.test.js
 │   └── auth.test.js
 ├── index.js            # Sovelluksen käynnistyspiste
-├── database.sql        # viellä puuttuu
+├── database.sql        
 ├── package.json
 └── README.md
 ```
