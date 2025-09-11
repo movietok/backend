@@ -46,7 +46,6 @@ backend/
 │   ├── auth.test.js
 │   └── finnkino.test.js
 ├── index.js            # Sovelluksen käynnistyspiste
-├── database.sql        # Tietokantaskeema
 ├── package.json
 ├── API.md              # API-dokumentaatio
 ├── FINNKINO_API.md     # Finnkino API -dokumentaatio
