@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 import {
   createReview,
   getReview,
@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 // Create a new review (requires authentication)
-router.post('/', auth, createReview);
+router.post('/', authenticateToken, createReview);
 
 // Get a specific review by ID
 router.get('/:id', getReview);
@@ -25,12 +25,12 @@ router.get('/movie/:movieId', getMovieReviews);
 router.get('/user/:userId', getUserReviews);
 
 // Update a review (requires authentication)
-router.put('/:id', auth, updateReview);
+router.put('/:id', authenticateToken, updateReview);
 
 // Delete a review (requires authentication)
-router.delete('/:id', auth, deleteReview);
+router.delete('/:id', authenticateToken, deleteReview);
 
 // Add/remove like or dislike to a review (requires authentication)
-router.post('/:id/interaction', auth, addReviewInteraction);
+router.post('/:id/interaction', authenticateToken, addReviewInteraction);
 
 export default router;

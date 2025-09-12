@@ -176,6 +176,49 @@ class UserController {
     }
   }
 
+  // PUT /api/users/:id - Päivitä käyttäjä ID:n perusteella (admin)
+  static async updateUserById(req, res) {
+    try {
+      const userId = parseInt(req.params.id);
+
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          error: 'Invalid user ID',
+          message: 'User ID must be a valid number'
+        });
+      }
+
+      const allowedFields = ['username', 'email'];
+      const updateData = {};
+
+      // Ota vain sallitut kentät
+      Object.keys(req.body).forEach(key => {
+        if (allowedFields.includes(key)) {
+          updateData[key] = req.body[key];
+        }
+      });
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+          error: 'No valid fields to update',
+          message: 'Please provide valid fields to update (username, email)'
+        });
+      }
+
+      const user = await UserService.updateUserById(userId, updateData);
+
+      res.json({
+        message: 'User updated successfully',
+        user
+      });
+    } catch (error) {
+      res.status(400).json({
+        error: 'Update failed',
+        message: error.message
+      });
+    }
+  }
+
   // DELETE /api/users/:id - Poista käyttäjä ID:n perusteella (admin)
   static async deleteUserById(req, res) {
     try {

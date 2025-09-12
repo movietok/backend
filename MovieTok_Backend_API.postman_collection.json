@@ -1,0 +1,847 @@
+{
+  "info": {
+    "name": "MovieTok Backend API",
+    "description": "Complete API collection for MovieTok backend with user authentication, movie reviews, and Finnkino integration",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "movieId",
+      "value": "test-movie-123",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health & System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser_{{$timestamp}}\",\n  \"email\": \"test_{{$timestamp}}@example.com\",\n  \"password\": \"testpassword123\",\n  \"real_name\": \"Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"testpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"real_name\": \"Updated Test User\",\n  \"username\": \"updateduser\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Movie Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('reviewId', response.data.review.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": \"{{movieId}}\",\n  \"rating\": 4,\n  \"comment\": \"Great movie! Really enjoyed it.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Movie Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/movie/{{movieId}}?limit=10&offset=0&sortBy=created_at&order=DESC",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "movie", "{{movieId}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "created_at"
+                },
+                {
+                  "key": "order",
+                  "value": "DESC"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/user/{{userId}}?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "user", "{{userId}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Updated: Amazing movie! Best I've seen this year.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Like Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"like\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}/interaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}", "interaction"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dislike Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"dislike\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}/interaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}", "interaction"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Finnkino API",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finnkino/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finnkino", "events"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Events by Area",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finnkino/events?area=1029",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finnkino", "events"],
+              "query": [
+                {
+                  "key": "area",
+                  "value": "1029",
+                  "description": "Helsinki area code"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finnkino/search?q=spider&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finnkino", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "spider"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finnkino/events/12345",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finnkino", "events", "12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finnkino/schedule?area=1029&date=2025-09-13",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finnkino", "schedule"],
+              "query": [
+                {
+                  "key": "area",
+                  "value": "1029",
+                  "description": "Helsinki area code"
+                },
+                {
+                  "key": "date",
+                  "value": "2025-09-13",
+                  "description": "Date in YYYY-MM-DD format"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Testing Workflows",
+      "item": [
+        {
+          "name": "Complete User Flow",
+          "item": [
+            {
+              "name": "1. Register Test User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('User registration successful', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('testUserId', response.user.id);",
+                      "    pm.collectionVariables.set('testUserEmail', response.user.email);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"testflow_{{$timestamp}}\",\n  \"email\": \"testflow_{{$timestamp}}@example.com\",\n  \"password\": \"testpassword123\",\n  \"real_name\": \"Test Flow User\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/register",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "users", "register"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Login Test User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Login successful', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('testAuthToken', response.token);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{testUserEmail}}\",\n  \"password\": \"testpassword123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "users", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Create Movie Review",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Review creation successful', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('testReviewId', response.data.review.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{testAuthToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"movieId\": \"test-movie-workflow\",\n  \"rating\": 4,\n  \"comment\": \"Test review from workflow\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reviews",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reviews"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Get User Reviews",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Get user reviews successful', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Reviews array is not empty', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.data.reviews.length).to.be.greaterThan(0);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reviews/user/{{testUserId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reviews", "user", "{{testUserId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Update Review",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Review update successful', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{testAuthToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Updated: Excellent movie!\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reviews/{{testReviewId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reviews", "{{testReviewId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Cleanup - Delete Review",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Review deletion successful', function () {",
+                      "    pm.response.to.have.status(204);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{testAuthToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reviews/{{testReviewId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reviews", "{{testReviewId}}"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
