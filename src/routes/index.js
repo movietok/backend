@@ -1,5 +1,6 @@
 import express from 'express';
 import userRoutes from './userRoutes.js';
+import reviewRoutes from './reviewRoutes.js';
 
 const router = express.Router();
 
@@ -14,8 +15,10 @@ router.get('/health', (req, res) => {
 
 // API versioning
 router.use('/api/v1/users', userRoutes);
+router.use('/api/v1/reviews', reviewRoutes);
 
 // Legacy routes (backward compatibility)
 router.use('/api/users', userRoutes);
+router.use('/api/reviews', reviewRoutes);
 
 export default router;
