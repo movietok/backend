@@ -1,108 +1,285 @@
-import Review from '../models/Reviews.js';
+import { ReviewService } from '../services/ReviewService.js';
 
 export const createReview = async (req, res) => {
   try {
-    const { movie_id, content, rating } = req.body;
-    const user_id = req.user.id; // From auth middleware
+    const { movieId, rating, comment } = req.body;
+    const userId = req.user.id;
 
-    const review = await Review.create({
-      movie_id,
-      user_id,
-      content,
-      rating
+    // Validate required fields
+    if (!movieId || !rating) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Movie ID and rating are required'
+      });
+    }
+
+    // Validate rating range
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Rating must be between 1 and 5'
+      });
+    }
+
+    const review = await ReviewService.createReview({
+      userId,
+      movieId,
+      rating,
+      comment: comment || null
     });
 
-    res.status(201).json(review);
+    res.status(201).json({
+      status: 'success',
+      data: { review }
+    });
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error.message === 'User has already reviewed this movie') {
+      return res.status(409).json({
+        status: 'error',
+        message: error.message
+      });
+    }
+
+    console.error('Error creating review:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const getReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const { id } = req.params;
+
+    const review = await ReviewService.getReviewById(id);
+
     if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+      return res.status(404).json({
+        status: 'error',
+        message: 'Review not found'
+      });
     }
-    res.json(review);
+
+    res.json({
+      status: 'success',
+      data: { review }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error getting review:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const getMovieReviews = async (req, res) => {
   try {
-    const reviews = await Review.findByMovieId(req.params.movieId);
-    res.json(reviews);
+    const { movieId } = req.params;
+    const { limit = 10, offset = 0, sortBy = 'created_at', order = 'DESC' } = req.query;
+
+    const result = await ReviewService.getMovieReviews(movieId, {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      sortBy,
+      order
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        reviews: result.reviews,
+        pagination: {
+          total: result.total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: parseInt(offset) + parseInt(limit) < result.total
+        },
+        stats: result.stats
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error getting movie reviews:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const getUserReviews = async (req, res) => {
   try {
-    const reviews = await Review.findByUserId(req.params.userId);
-    res.json(reviews);
+    const { userId } = req.params;
+    const { limit = 10, offset = 0, sortBy = 'created_at', order = 'DESC' } = req.query;
+
+    const result = await ReviewService.getUserReviews(userId, {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      sortBy,
+      order
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        reviews: result.reviews,
+        pagination: {
+          total: result.total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: parseInt(offset) + parseInt(limit) < result.total
+        }
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error getting user reviews:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const updateReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    // Check if review exists and belongs to user
+    const existingReview = await ReviewService.getReviewById(id);
     
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+    if (!existingReview) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Review not found'
+      });
     }
 
-    // Check if the user is the owner of the review
-    if (review.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to update this review' });
+    if (existingReview.user_id !== userId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to update this review'
+      });
     }
 
-    const { content, rating } = req.body;
-    const updatedReview = await Review.update(req.params.id, { content, rating });
-    
-    res.json(updatedReview);
+    // Validate rating if provided
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Rating must be between 1 and 5'
+      });
+    }
+
+    const updatedReview = await ReviewService.updateReview(id, {
+      rating,
+      comment
+    });
+
+    res.json({
+      status: 'success',
+      data: { review: updatedReview }
+    });
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Error updating review:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const deleteReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Check if review exists and belongs to user
+    const existingReview = await ReviewService.getReviewById(id);
     
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
+    if (!existingReview) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Review not found'
+      });
     }
 
-    // Check if the user is the owner of the review
-    if (review.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to delete this review' });
+    if (existingReview.user_id !== userId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to delete this review'
+      });
     }
 
-    await Review.delete(req.params.id);
+    await ReviewService.deleteReview(id);
+
     res.status(204).send();
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error deleting review:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };
 
 export const addReviewInteraction = async (req, res) => {
   try {
+    const { id: reviewId } = req.params;
     const { type } = req.body; // 'like' or 'dislike'
-    const reviewId = req.params.id;
     const userId = req.user.id;
 
-    if (!['like', 'dislike', null].includes(type)) {
-      return res.status(400).json({ error: 'Invalid interaction type' });
+    console.log('🔍 Interaction request:', { reviewId, type, userId });
+
+    // Validate interaction type
+    if (!['like', 'dislike'].includes(type)) {
+      console.log('❌ Invalid interaction type:', type);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Interaction type must be "like" or "dislike"'
+      });
     }
 
-    const review = await Review.addInteraction(reviewId, userId, type);
-    res.json(review);
+    // Check if review exists
+    const review = await ReviewService.getReviewById(reviewId);
+    if (!review) {
+      console.log('❌ Review not found:', reviewId);
+      return res.status(404).json({
+        status: 'error',
+        message: 'Review not found'
+      });
+    }
+
+    console.log('📝 Review found:', { reviewId: review.id, userId: review.user_id, currentUser: userId });
+
+    // Users cannot interact with their own reviews
+    if (review.user_id === userId) {
+      console.log('❌ User trying to interact with own review:', { reviewUserId: review.user_id, currentUserId: userId });
+      return res.status(400).json({
+        status: 'error',
+        message: 'Cannot interact with your own review'
+      });
+    }
+
+    const interaction = await ReviewService.addReviewInteraction(reviewId, userId, type);
+
+    res.json({
+      status: 'success',
+      data: { interaction }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error adding review interaction:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };

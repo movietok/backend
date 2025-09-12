@@ -47,6 +47,19 @@ class Review {
     }
   }
 
+  // READ - Check if user has already reviewed a movie
+  static async findByUserAndMovie(userId, movieId) {
+    try {
+      const result = await query(
+        'SELECT * FROM reviews WHERE user_id = $1 AND movie_id = $2',
+        [userId, movieId]
+      );
+      return result.rows[0] ? new Review(result.rows[0]) : null;
+    } catch (error) {
+      throw new Error(`Error finding user review: ${error.message}`);
+    }
+  }
+
   // READ - Get all reviews for a movie
   static async findByMovieId(movieId) {
     try {
