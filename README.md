@@ -1,5 +1,20 @@
-# Backend
+# Backend Server
 
+Moderni Node.js Express server CRUD-toiminnallisuudella, PostgreSQL-tietokannalla, JWT-autentikoinnilla, Finnkino API -integraatiolla ja komponenttipohjaisella arkkitehtuurilla.
+
+## 🚀 Ominaisuudet
+
+- **Täysi CRUD-toiminnallisuus** käyttäjille ja elokuville
+- **Finnkino API -integraatio** elokuvien ja aikataulujen hakuun
+- **JWT-pohjainen autentikointi** ja valtuutus
+- **Bcrypt salasanojen hashays** turvallisuuden varmistamiseksi
+- **PostgreSQL-tietokannan integraatio** suhteiden kanssa
+- **Komponenttipohjainen arkkitehtuuri** (MVC-malli)
+- **CORS-tuki** cross-origin pyyntöjä varten
+- **Ympäristökohtaiset konfiguraatiot** (dev/test/prod)
+- **Kattava testisetti** Mocha ja Chai -kirjastoilla
+- **Virheenkäsittely ja validointi**
+- **API-versiointi ja dokumentaatio**
 
 ## 📁 Projektin rakenne
 
@@ -7,9 +22,11 @@
 backend/
 ├── src/
 │   ├── config/           # Tietokanta- ja muut konfiguraatiot
-│   │   └── database.js
+│   │   ├── database.js
+│   │   └── config.js
 │   ├── controllers/      # API-kontrollerit (CRUD-logiikka)
-│   │   └── UserController.js
+│   │   ├── UserController.js
+│   │   └── FinnkinoController.js
 │   ├── middleware/       # Express middlewaret
 │   │   └── auth.js
 │   ├── models/          # Tietokantamallit
@@ -17,15 +34,21 @@ backend/
 │   │   └── Movie.js
 │   ├── routes/          # API-reitit
 │   │   ├── index.js
-│   │   └── userRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── finnkinoRoutes.js
 │   └── services/        # Liiketoimintalogiikka
-│       └── UserService.js
+│       ├── UserService.js
+│       └── FinnkinoService.js
+├── scripts/             # Apuskriptit
+│   └── switch-env.js
 ├── tests/               # Testit
 │   ├── user.test.js
-│   └── auth.test.js
+│   ├── auth.test.js
+│   └── finnkino.test.js
 ├── index.js            # Sovelluksen käynnistyspiste
-├── database.sql        # viellä puuttuu
 ├── package.json
+├── API.md              # API-dokumentaatio
+├── FINNKINO_API.md     # Finnkino API -dokumentaatio
 └── README.md
 ```
 
@@ -160,9 +183,23 @@ Sovellus käyttää automaattisesti oikeita asetuksia ympäristön perusteella:
 
 ### 🔓 Julkiset päätepisteet
 
+#### Terveystarkistus
 - `GET /health` - Terveystarkistus
+
+#### Käyttäjähallinta
 - `POST /api/users/register` - Käyttäjän rekisteröinti
 - `POST /api/users/login` - Käyttäjän kirjautuminen
+
+#### Finnkino API (Julkinen)
+- `GET /api/finnkino/events` - Hae elokuvien lista
+- `GET /api/finnkino/events/:id` - Hae yksittäisen elokuvan tiedot
+- `GET /api/finnkino/schedule` - Hae elokuvien aikataulut
+- `GET /api/finnkino/events/:id/schedule` - Hae elokuvan aikataulut
+- `GET /api/finnkino/theatres` - Hae teatterialueiden lista
+- `GET /api/finnkino/search` - Etsi elokuvia
+- `GET /api/finnkino/popular` - Hae suositut elokuvat
+- `GET /api/finnkino/coming-soon` - Hae tulevat elokuvat
+- `GET /api/finnkino/now-showing` - Hae nyt esitettävät elokuvat
 
 ### 🔒 Suojatut päätepisteet (vaativat JWT-tokenin)
 
@@ -173,6 +210,10 @@ Sovellus käyttää automaattisesti oikeita asetuksia ympäristön perusteella:
 - `GET /api/users` - Hae kaikki käyttäjät (paginaatio)
 - `GET /api/users/:id` - Hae käyttäjä ID:n perusteella
 - `DELETE /api/users/:id` - Poista käyttäjä ID:n perusteella
+
+### 📚 API-dokumentaatio
+- Kattava käyttäjä API-dokumentaatio: `API.md`
+- Finnkino API-dokumentaatio: `FINNKINO_API.md`
 
 ## 🔐 Autentikointi
 
