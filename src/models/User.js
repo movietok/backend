@@ -5,7 +5,8 @@ class User {
     this.id = data.id;
     this.username = data.username;
     this.email = data.email;
-    this.password = data.password;
+    this.password_hash = data.password_hash;
+    this.real_name = data.real_name;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -15,7 +16,7 @@ class User {
     try {
       const { username, email, password } = userData;
       const result = await query(
-        'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *',
+        'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
         [username, email, password]
       );
       return new User(result.rows[0]);

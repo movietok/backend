@@ -50,7 +50,7 @@ class UserService {
       }
 
       // Tarkista salasana
-      const validPassword = await bcrypt.compare(password, user.password);
+      const validPassword = await bcrypt.compare(password, user.password_hash);
       if (!validPassword) {
         throw new Error('Invalid credentials');
       }
@@ -173,6 +173,50 @@ class UserService {
       return user.toPublicObject();
     } catch (error) {
       throw new Error(`Failed to get user: ${error.message}`);
+    }
+  }
+
+  // Päivitä käyttäjä ID:n perusteella (admin-toiminto)
+  static async updateUserById(userId, updateData) {
+    try {
+      const { username, email } = updateData;
+      
+      // Tarkista että käyttäjä löytyy
+      const existingUser = await User.findById(userId);
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+
+      // Tarkista että sähköposti ei ole jo käytössä toisella käyttäjällä
+      if (email && email !== existingUser.email) {
+        const emailUser = await User.findByEmail(email);
+        if (emailUser && emailUser.id !== userId) {
+          throw new Error('Email is already in use by another user');
+        }
+      }
+
+      // Tarkista että käyttäjänimi ei ole jo käytössä toisella käyttäjällä
+      if (username && username !== existingUser.username) {
+        const usernameUser = await User.findByUsername(username);
+        if (usernameUser && usernameUser.id !== userId) {
+          throw new Error('Username is already taken by another user');
+        }
+      }
+
+      // Päivitä vain username ja email (role päivitetään erikseen jos tarvitaan)
+      const updates = {};
+      if (username) updates.username = username;
+      if (email) updates.email = email;
+
+      if (Object.keys(updates).length === 0) {
+        // Jos ei ole päivitettäviä kenttiä, palauta nykyinen käyttäjä
+        return existingUser.toPublicObject();
+      }
+
+      const updatedUser = await User.updateById(userId, updates);
+      return updatedUser.toPublicObject();
+    } catch (error) {
+      throw new Error(`Failed to update user: ${error.message}`);
     }
   }
 }

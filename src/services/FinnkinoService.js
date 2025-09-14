@@ -15,7 +15,16 @@ class FinnkinoService {
    */
   async fetchXmlData(url) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'MovieTok-Backend/1.0.0 (Node.js Application)',
+          'Accept': 'application/xml, text/xml, */*',
+          'Accept-Language': 'fi-FI,fi;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache'
+        },
+        method: 'GET'
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -62,14 +71,31 @@ class FinnkinoService {
 
       const data = await this.fetchXmlData(url);
       
+      console.log('📊 Finnkino API response structure:', {
+        hasEvents: !!data.Events,
+        hasEvent: !!(data.Events && data.Events.Event),
+        eventType: data.Events && data.Events.Event ? typeof data.Events.Event : 'undefined'
+      });
+      
       if (!data.Events || !data.Events.Event) {
+        console.log('⚠️ No events found in Finnkino response');
         return [];
       }
 
       // Varmista että Event on aina array
       const events = Array.isArray(data.Events.Event) ? data.Events.Event : [data.Events.Event];
       
-      return events.map(event => this.formatEvent(event));
+      console.log(`📽️ Found ${events.length} events`);
+      
+      return events.map((event, index) => {
+        try {
+          return this.formatEvent(event);
+        } catch (formatError) {
+          console.error(`❌ Error formatting event ${index}:`, formatError);
+          console.error('Event data:', JSON.stringify(event, null, 2));
+          throw formatError;
+        }
+      });
     } catch (error) {
       throw new Error(`Failed to get events: ${error.message}`);
     }
@@ -191,12 +217,22 @@ class FinnkinoService {
       if (!query) return events;
       
       const searchTerm = query.toLowerCase();
-      return events.filter(event => 
-        event.title.toLowerCase().includes(searchTerm) ||
-        event.originalTitle.toLowerCase().includes(searchTerm) ||
-        (event.genres && event.genres.toLowerCase().includes(searchTerm)) ||
-        (event.directors && event.directors.toLowerCase().includes(searchTerm))
-      );
+      return events.filter(event => {
+        // Varmistetaan että kaikki kentät ovat stringejä
+        const title = (event.title || '').toString().toLowerCase();
+        const originalTitle = (event.originalTitle || '').toString().toLowerCase();
+        const genres = (event.genres || '').toString().toLowerCase();
+        const directors = (event.directors || '').toString().toLowerCase();
+        const cast = (event.cast || '').toString().toLowerCase();
+        const synopsis = (event.synopsis || '').toString().toLowerCase();
+        
+        return title.includes(searchTerm) ||
+               originalTitle.includes(searchTerm) ||
+               genres.includes(searchTerm) ||
+               directors.includes(searchTerm) ||
+               cast.includes(searchTerm) ||
+               synopsis.includes(searchTerm);
+      });
     } catch (error) {
       throw new Error(`Failed to search events: ${error.message}`);
     }
@@ -227,9 +263,9 @@ class FinnkinoService {
       subtitleLanguage1: event.SubtitleLanguage1 ? event.SubtitleLanguage1.Name : '',
       subtitleLanguage2: event.SubtitleLanguage2 ? event.SubtitleLanguage2.Name : '',
       rating: {
-        name: event.Rating ? event.Rating.Name : '',
-        ageLimit: event.Rating ? event.Rating.Name.replace(/\D/g, '') : '',
-        imageUrl: event.Rating ? event.Rating.ImageURL : ''
+        name: event.Rating && event.Rating.Name ? event.Rating.Name : '',
+        ageLimit: event.Rating && event.Rating.Name ? event.Rating.Name.replace(/\D/g, '') : '',
+        imageUrl: event.Rating && event.Rating.ImageURL ? event.Rating.ImageURL : ''
       },
       images: {
         eventSmall: event.Images ? event.Images.EventSmallImageURL : '',
@@ -265,9 +301,9 @@ class FinnkinoService {
       genres: show.Genres || '',
       synopsis: show.Synopsis || '',
       rating: {
-        name: show.Rating ? show.Rating.Name : '',
-        ageLimit: show.Rating ? show.Rating.Name.replace(/\D/g, '') : '',
-        imageUrl: show.Rating ? show.Rating.ImageURL : ''
+        name: show.Rating && show.Rating.Name ? show.Rating.Name : '',
+        ageLimit: show.Rating && show.Rating.Name ? show.Rating.Name.replace(/\D/g, '') : '',
+        imageUrl: show.Rating && show.Rating.ImageURL ? show.Rating.ImageURL : ''
       },
       images: {
         eventSmall: show.Images ? show.Images.EventSmallImageURL : '',

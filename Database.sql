@@ -9,6 +9,7 @@ CREATE TYPE group_member_role AS ENUM ('member', 'moderator', 'owner');
 CREATE TYPE report_target AS ENUM ('user', 'movie', 'review', 'comment', 'group');
 CREATE TYPE interaction_type AS ENUM ('like', 'dislike');
 CREATE TYPE interaction_target AS ENUM ('review', 'movie', 'comment');
+CREATE TYPE age_rating AS ENUM ('G', 'PG', 'PG-13', 'R', 'NC-17', 'NR');
 
 -- ==========================================
 -- USERS TABLE
@@ -63,23 +64,23 @@ CREATE TABLE IF NOT EXISTS group_members (
 -- MOVIES + REVIEWS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS movies (
-    id 					INT PRIMARY KEY,
+    id 					VARCHAR(255) PRIMARY KEY, -- Changed to VARCHAR for Finnkino API compatibility
     title 				TEXT NOT NULL,
     original_title 		TEXT,
     description 		TEXT,
     release_date 		DATE,
     runtime_minutes 	INTEGER,
     imdb_rating 		NUMERIC(3,1),
-    age_cert age_rating,
+    age_cert 			age_rating,
     created_at 			TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
     id         SERIAL PRIMARY KEY,
-    movie_id   INT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    movie_id   VARCHAR(255) NOT NULL, -- Changed to VARCHAR to match Finnkino API
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    stars      INT NOT NULL CHECK (stars BETWEEN 1 AND 5),
-    text       TEXT NOT NULL,
+    rating     INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- Changed from 'stars' to 'rating'
+    content    TEXT, -- Changed from 'text' to 'content' to match controller
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -88,16 +89,17 @@ CREATE TABLE IF NOT EXISTS reviews (
 
 CREATE TABLE IF NOT EXISTS comments (
     id         SERIAL PRIMARY KEY,
-    review_id  INT default 0 REFERENCES reviews(id) ON DELETE CASCADE,
-	movie_id   INT default 0 REFERENCES movies(id) ON DELETE CASCADE,
-    text       TEXT NOT NULL,
+    review_id  INT REFERENCES reviews(id) ON DELETE CASCADE,
+    movie_id   VARCHAR(255) REFERENCES movies(id) ON DELETE CASCADE,
+    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Added missing user_id
+    content    TEXT NOT NULL, -- Changed from 'text' to 'content'
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     deleted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS favorites (
     user_id   	INT REFERENCES users(id) ON DELETE CASCADE,
-    movie_id  	INT REFERENCES movies(id) ON DELETE CASCADE,
+    movie_id  	VARCHAR(255) REFERENCES movies(id) ON DELETE CASCADE,
     created_at 	TIMESTAMP NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, movie_id)
 );
@@ -122,17 +124,46 @@ CREATE TABLE IF NOT EXISTS reports (
     reason       TEXT NOT NULL,
     created_at   TIMESTAMP NOT NULL DEFAULT now(),
     handled_at   TIMESTAMP,
-    handler_id   INT REFERENCES users(id) ON DELETE SET NULL,
+    handler_id   INT REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- ==========================================
--- GLOBAL INTERACTIONS TABLE
+-- INTERACTIONS TABLE (for likes/dislikes)
 -- ==========================================
-
 CREATE TABLE IF NOT EXISTS interactions (
-	id          	 	SERIAL PRIMARY KEY,
-	interaction_type 	VARCHAR(50) NOT NULL,
-	interaction_target 	VARCHAR(50) NOT NULL,
-	user_id				INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	created_at			TIMESTAMP NOT NULL DEFAULT now()
-); --//1  
+    id          SERIAL PRIMARY KEY,
+    target_id   INT NOT NULL,
+    target_type interaction_target NOT NULL,
+    user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type        interaction_type NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT now(),
+    UNIQUE (target_id, target_type, user_id) -- Prevent duplicate interactions
+);
+
+-- ==========================================
+-- INDEXES FOR BETTER PERFORMANCE
+-- ==========================================
+CREATE INDEX IF NOT EXISTS idx_reviews_movie_id ON reviews(movie_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);
+CREATE INDEX IF NOT EXISTS idx_interactions_target ON interactions(target_id, target_type);
+CREATE INDEX IF NOT EXISTS idx_interactions_user ON interactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_review_id ON comments(review_id);
+CREATE INDEX IF NOT EXISTS idx_comments_movie_id ON comments(movie_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+
+-- ==========================================
+-- TRIGGERS FOR AUTOMATIC TIMESTAMP UPDATES
+-- ==========================================
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_reviews_updated_at 
+    BEFORE UPDATE ON reviews 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();

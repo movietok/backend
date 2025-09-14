@@ -19,6 +19,7 @@ router.delete('/profile', UserController.deleteProfile);
 // Käyttäjähallinta
 router.get('/', UserController.getAllUsers);
 router.get('/:id', UserController.getUserById);
+router.put('/:id', UserController.updateUserById);
 router.delete('/:id', UserController.deleteUserById);
 
 export default router;

@@ -238,15 +238,19 @@ class FinnkinoController {
   static async searchEvents(req, res) {
     try {
       const {
-        q: query = '',
+        q,
+        query,
         listType = 'NowInTheatres'
       } = req.query;
 
-      if (!query.trim()) {
+      // Hyväksy sekä 'q' että 'query' parametrit
+      const searchQuery = q || query || '';
+
+      if (!searchQuery.trim()) {
         return res.status(400).json({
           success: false,
           error: 'Missing search query',
-          message: 'Search query (q) is required'
+          message: 'Search query (q or query) is required'
         });
       }
 
@@ -258,11 +262,11 @@ class FinnkinoController {
         });
       }
 
-      const events = await FinnkinoController.finnkinoService.searchEvents(query, listType);
+      const events = await FinnkinoController.finnkinoService.searchEvents(searchQuery, listType);
 
       res.json({
         success: true,
-        query,
+        query: searchQuery,
         listType,
         count: events.length,
         events
