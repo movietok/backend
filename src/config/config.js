@@ -62,6 +62,7 @@ class Config {
   }
 
   // Get CORS origins based on environment
+  // Palataan tähän, kun saadaan kehitysympäristö palvelimelle ja tuodaan automaatiota. 
   getCorsOrigins() {
     switch (this.environment) {
       case 'production':

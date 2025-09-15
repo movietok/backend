@@ -11,13 +11,13 @@ class FinnkinoService {
   }
 
   /**
-   * Hae XML-data Finnkino API:sta ja muunna JSON:ksi
+   * Hae XML-data Finnkino API:sta ja muunna JSON:ksi ( tehtiin useragentti, jotta vältytään banneilta )
    */
   async fetchXmlData(url) {
     try {
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'MovieTok-Backend/1.0.0 (Node.js Application)',
+          'User-Agent': 'MovieTok-Backend/1.0.0',
           'Accept': 'application/xml, text/xml, */*',
           'Accept-Language': 'fi-FI,fi;q=0.9,en;q=0.8',
           'Cache-Control': 'no-cache'
@@ -109,7 +109,7 @@ class FinnkinoService {
   async getSchedule(options = {}) {
     try {
       const {
-        area = '1014', // Pääkaupunkiseutu oletuksena
+        area = '1014', // Pääkaupunkiseutu oletuksena, listään tietokantaan listaus 
         dt = '', // Tämä päivä oletuksena
         eventID = '',
         nrOfDays = '1'
@@ -331,6 +331,7 @@ class FinnkinoService {
       
       // Järjestä elokuvat (tässä esimerkissä vain rajoita määrää)
       // Oikeassa toteutuksessa voisi järjestää esim. näytösten määrän mukaan
+      // Palataan tähän, kun Frontti on valmis.
       return events.slice(0, limit);
     } catch (error) {
       throw new Error(`Failed to get popular events: ${error.message}`);
@@ -340,7 +341,8 @@ class FinnkinoService {
   /**
    * Hae tulevat elokuvat
    * @returns {Promise<Array>} Lista tulevista elokuvista
-   */
+  * Palataan tähän, kun Frontti on valmis. 
+  */
   async getComingSoonEvents() {
     try {
       return await this.getEvents({ listType: 'ComingSoon' });
