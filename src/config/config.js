@@ -21,7 +21,7 @@ class Config {
       
       // PostgreSQL connection pool settings
       max: this.environment === 'production' ? 20 : 10, // Maximum number of connections
-      idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+      idleTimeoutMillis: 30000, // Close idle clients after 30 seconds. Säädetään tätä kun nähdään miten käytäytyy suuremman kuorman kanssa palvelimella. Lokaalisti fine
       connectionTimeoutMillis: 2000, // Return error after 2 seconds if connection could not be established
     };
 

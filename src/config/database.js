@@ -9,7 +9,7 @@ const loggingConfig = config.getLoggingConfig();
 
 // Create connection pool
 const pool = new Pool(dbConfig);
-
+// memo:  ToDO: Siiretään kaikki logitukset Developer moden alle. Antaa nyt olla. 
 // Log connection info (without sensitive data)
 console.log(`🗃️  Connecting to ${config.environment} database: ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
 
