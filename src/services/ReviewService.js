@@ -31,7 +31,7 @@ export class ReviewService {
     }
   }
 
-  // Get all reviews for a movie with pagination and stats
+  // Get all reviews for a movie with pagination and stats, Maybe we will refactor this later and change calculation from 0 to 5. 
   static async getMovieReviews(movieId, options = {}) {
     try {
       const { limit = 10, offset = 0, sortBy = 'created_at', order = 'DESC' } = options;

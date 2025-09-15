@@ -1,5 +1,5 @@
 import { query } from '../config/database.js';
-
+// Alustava toteutus. Elovukiva ei vielä tuoda tietokantaan. Mahdollisesti tuodaan vain Finkinon elokuvat, joihin sitten haetaan sisältöä timdb:stä tai muualta.
 class Movie {
   constructor(data) {
     this.id = data.id;
