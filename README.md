@@ -47,7 +47,7 @@ backend/
 │   └── finnkino.test.js
 ├── index.js            # Sovelluksen käynnistyspiste
 ├── package.json
-├── API.md              # API-dokumentaatio
+├── Postman              # Postmanin Skeemat Endpointtien testaukseen
 ├── FINNKINO_API.md     # Finnkino API -dokumentaatio
 └── README.md
 ```
