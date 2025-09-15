@@ -1,20 +1,9 @@
 # Backend Server
 
-Moderni Node.js Express server CRUD-toiminnallisuudella, PostgreSQL-tietokannalla, JWT-autentikoinnilla, Finnkino API -integraatiolla ja komponenttipohjaisella arkkitehtuurilla.
+
 
 ## 🚀 Ominaisuudet
 
-- **Täysi CRUD-toiminnallisuus** käyttäjille ja elokuville
-- **Finnkino API -integraatio** elokuvien ja aikataulujen hakuun
-- **JWT-pohjainen autentikointi** ja valtuutus
-- **Bcrypt salasanojen hashays** turvallisuuden varmistamiseksi
-- **PostgreSQL-tietokannan integraatio** suhteiden kanssa
-- **Komponenttipohjainen arkkitehtuuri** (MVC-malli)
-- **CORS-tuki** cross-origin pyyntöjä varten
-- **Ympäristökohtaiset konfiguraatiot** (dev/test/prod)
-- **Kattava testisetti** Mocha ja Chai -kirjastoilla
-- **Virheenkäsittely ja validointi**
-- **API-versiointi ja dokumentaatio**
 
 ## 📁 Projektin rakenne
 
@@ -57,25 +46,7 @@ backend/
 
 ## 📥 Asennus
 
-1. Kloonaa repositorio
-2. Asenna riippuvuudet:
-   ```bash
-   npm install
-   ```
 
-3. Määritä ympäristömuuttujat:
-   ```bash
-   cp .env.example .env
-   ```
-   Muokkaa `.env` tiedostoa tietokanta- ja JWT-asetuksillasi.
-
-4. Määritä tietokanta:
-   - Luo PostgreSQL-tietokanta
-   - Suorita SQL-komennot `database.sql` tiedostosta tarvittavien taulujen luomiseksi
-
-## 🔧 Ympäristömuuttujat
-
-Projekti tukee ympäristökohtaisia konfiguraatioita. Luo `.env` tiedosto projektin juurikansioon:
 
 ### Development-ympäristö (.env)
 ```env
@@ -123,35 +94,6 @@ PROD_DB_PASSWORD=very_secure_production_password
 PROD_JWT_SECRET=extremely_secure_production_jwt_secret
 ```
 
-### Test-ympäristö
-Testit käyttävät automaattisesti `TEST_` -alkuisia muuttujia.
-
-## 🚀 Ympäristökohtaiset toiminnot
-
-Sovellus käyttää automaattisesti oikeita asetuksia ympäristön perusteella:
-
-### Development
-- **Tietokanta**: `moviedb_dev`
-- **Logging**: Kaikki SQL-kyselyt ja pyynnöt lokitetaan
-- **CORS**: Sallii localhost-osoitteet
-- **JWT-aikakatkaisu**: 24 tuntia
-- **Bcrypt-kierrokset**: 10 (nopeampi)
-- **Tietokannan luonti**: Automaattinen
-
-### Production
-- **Tietokanta**: `moviedb_prod`
-- **Logging**: Vain virheet ja info-tason viestit
-- **CORS**: Vain määritellyt tuotantotunnukset
-- **JWT-aikakatkaisu**: 1 tunti (turvallisempi)
-- **Bcrypt-kierrokset**: 12 (turvallisempi)
-- **SSL**: Käytössä tietokantayhteyksille
-- **Validointi**: Varoittaa turvattomista asetuksista
-
-### Test
-- **Tietokanta**: `moviedb_test`
-- **Logging**: Ei lokitusta testien aikana
-- **JWT-aikakatkaisu**: 24 tuntia
-- **Bcrypt-kierrokset**: 10 (nopeampi testejä varten)
 
 ## 🎯 Skriptit
 
@@ -184,13 +126,13 @@ Sovellus käyttää automaattisesti oikeita asetuksia ympäristön perusteella:
 ### 🔓 Julkiset päätepisteet
 
 #### Terveystarkistus
-- `GET /health` - Terveystarkistus
+- `GET /health` - Terveystarkistus - Tarvitaan CI/CD:ssä kun otamme Github-Actionin käyttöön. 
 
 #### Käyttäjähallinta
 - `POST /api/users/register` - Käyttäjän rekisteröinti
 - `POST /api/users/login` - Käyttäjän kirjautuminen
 
-#### Finnkino API (Julkinen)
+#### Finnkino API (Ei vaadi tokenia)
 - `GET /api/finnkino/events` - Hae elokuvien lista
 - `GET /api/finnkino/events/:id` - Hae yksittäisen elokuvan tiedot
 - `GET /api/finnkino/schedule` - Hae elokuvien aikataulut
@@ -211,9 +153,6 @@ Sovellus käyttää automaattisesti oikeita asetuksia ympäristön perusteella:
 - `GET /api/users/:id` - Hae käyttäjä ID:n perusteella
 - `DELETE /api/users/:id` - Poista käyttäjä ID:n perusteella
 
-### 📚 API-dokumentaatio
-- Kattava käyttäjä API-dokumentaatio: `API.md`
-- Finnkino API-dokumentaatio: `FINNKINO_API.md`
 
 ## 🔐 Autentikointi
 
@@ -226,18 +165,7 @@ Authorization: Bearer <your_jwt_token>
 
 ## 🧪 Testaus
 
-Projekti sisältää kattavat testit Mochan ja Chain avulla. Suorita testit komennolla:
-
-```bash
-npm test
-```
-
-Testit kattavat:
-- API-päätepisteiden toiminnallisuuden
-- Autentikointitoiminnot
-- CRUD-operaatiot
-- Virheenkäsittelyn
-- Validoinnin
+Projekti sisältää kattavat testit Mochan ja Chain avulla. Suorita testit komennolla (vielä kesken):
 
 ## 💻 Kehitys
 
