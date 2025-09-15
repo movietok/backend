@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     username CITEXT 	UNIQUE NOT NULL,
     email CITEXT 		UNIQUE NOT NULL,
     password_hash 		TEXT NOT NULL,
-    account_type_id 	INT,  -- optional, can reference external account type table if needed
+    account_type_id 	INT,  
     real_name 			VARCHAR(50),
     last_activity_at 	TIMESTAMP,
     created_at 			TIMESTAMP NOT NULL DEFAULT now(),
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS group_members (
 -- MOVIES + REVIEWS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS movies (
-    id 					VARCHAR(255) PRIMARY KEY, -- Changed to VARCHAR for Finnkino API compatibility
+    id 					VARCHAR(255) PRIMARY KEY, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä -Martin
     title 				TEXT NOT NULL,
     original_title 		TEXT,
     description 		TEXT,
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS movies (
 
 CREATE TABLE IF NOT EXISTS reviews (
     id         SERIAL PRIMARY KEY,
-    movie_id   VARCHAR(255) NOT NULL, -- Changed to VARCHAR to match Finnkino API
+    movie_id   VARCHAR(255) NOT NULL, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä - Martin
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    rating     INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- Changed from 'stars' to 'rating'
-    content    TEXT, -- Changed from 'text' to 'content' to match controller
+    rating     INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- Muutetaanko 0-5 
+    content    TEXT, 
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS comments (
     id         SERIAL PRIMARY KEY,
     review_id  INT REFERENCES reviews(id) ON DELETE CASCADE,
     movie_id   VARCHAR(255) REFERENCES movies(id) ON DELETE CASCADE,
-    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Added missing user_id
-    content    TEXT NOT NULL, -- Changed from 'text' to 'content'
+    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
+    content    TEXT NOT NULL, 
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     deleted_at TIMESTAMP
 );
@@ -137,20 +137,8 @@ CREATE TABLE IF NOT EXISTS interactions (
     user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type        interaction_type NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT now(),
-    UNIQUE (target_id, target_type, user_id) -- Prevent duplicate interactions
+    UNIQUE (target_id, target_type, user_id) 
 );
-
--- ==========================================
--- INDEXES FOR BETTER PERFORMANCE
--- ==========================================
-CREATE INDEX IF NOT EXISTS idx_reviews_movie_id ON reviews(movie_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);
-CREATE INDEX IF NOT EXISTS idx_interactions_target ON interactions(target_id, target_type);
-CREATE INDEX IF NOT EXISTS idx_interactions_user ON interactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_comments_review_id ON comments(review_id);
-CREATE INDEX IF NOT EXISTS idx_comments_movie_id ON comments(movie_id);
-CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 
 -- ==========================================
 -- TRIGGERS FOR AUTOMATIC TIMESTAMP UPDATES
