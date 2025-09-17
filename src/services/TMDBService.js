@@ -122,6 +122,27 @@ class TMDBService {
       )
       .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))[0];
 
+    // Get crew members by department
+    const crew = movie.credits?.crew || [];
+    const directors = crew
+      .filter(person => person.job === 'Director')
+      .map(person => ({
+        id: person.id,
+        name: person.name,
+        job: person.job,
+        profilePath: person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null
+      }));
+
+    const keyCrewRoles = ['Producer', 'Executive Producer', 'Screenplay', 'Writer', 'Director of Photography', 'Original Music Composer'];
+    const keyCrew = crew
+      .filter(person => keyCrewRoles.includes(person.job))
+      .map(person => ({
+        id: person.id,
+        name: person.name,
+        job: person.job,
+        profilePath: person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null
+      }));
+
     return {
       id: movie.id,
       title: movie.title,
@@ -139,10 +160,12 @@ class TMDBService {
       cast: movie.credits?.cast?.slice(0, 10).map(actor => ({
         id: actor.id,
         name: actor.name,
+        job: "Actor",
         character: actor.character,
         profilePath: actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : null
       })) || [],
-      director: movie.credits?.crew?.find(person => person.job === 'Director')?.name,
+      directors: directors,
+      keyCrew: keyCrew,
       // Trailer information
       trailer: trailer ? {
         name: trailer.name,
