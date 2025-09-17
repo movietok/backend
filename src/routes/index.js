@@ -2,6 +2,7 @@ import express from 'express';
 import userRoutes from './userRoutes.js';
 import reviewRoutes from './reviewRoutes.js';
 import finnkinoRoutes from './finnkinoRoutes.js';
+import tmdbRoutes from './tmdbRoutes.js';
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.get('/health', (req, res) => {
 // API versioning
 router.use('/api/v1/users', userRoutes);
 router.use('/api/v1/reviews', reviewRoutes);
+router.use('/api/v1/tmdb', tmdbRoutes);
 
 // Legacy routes (backward compatibility)
 router.use('/api/users', userRoutes);
