@@ -32,9 +32,18 @@ class FinnkinoService {
       console.log(`🌐 Fetching fresh data from: ${url}`);
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'MovieTok-Backend/1.0.0',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
           'Accept': 'application/xml, text/xml, */*',
           'Accept-Language': 'fi-FI,fi;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Ch-Ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
           'Cache-Control': 'no-cache'
         },
         method: 'GET'
