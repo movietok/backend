@@ -4,10 +4,10 @@ import pool, { query } from '../src/config/database.js';
 
 async function createTestDatabase() {
   try {
-    console.log('🗃️ Creating test database from database.sql...');
+    console.log('🗃️ Creating test database from Database.sql...');
     
-    // Read database.sql file
-    const sqlFilePath = path.join(process.cwd(), 'database.sql');
+    // Read Database.sql file
+    const sqlFilePath = path.join(process.cwd(), 'Database.sql');
     const sqlScript = fs.readFileSync(sqlFilePath, 'utf8');
     
     // Clean up existing tables in test environment
@@ -18,10 +18,10 @@ async function createTestDatabase() {
     await query('GRANT ALL ON SCHEMA public TO public;');
     
     // Execute the full SQL script
-    console.log('📋 Executing database.sql...');
+    console.log('📋 Executing Database.sql...');
     await query(sqlScript);
     
-    console.log('✅ Test database created successfully from database.sql!');
+    console.log('✅ Test database created successfully from Database.sql!');
   } catch (error) {
     console.error('❌ Error creating test database:', error.message);
     process.exit(1);

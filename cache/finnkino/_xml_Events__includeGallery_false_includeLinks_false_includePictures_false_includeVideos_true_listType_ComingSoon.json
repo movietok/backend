@@ -1,0 +1,31 @@
+{
+  "timestamp": 1726931052000,
+  "data": {
+    "Events": {
+      "Event": [
+        {
+          "ID": "12347",
+          "Title": "Upcoming Test Movie",
+          "OriginalTitle": "Upcoming Test Movie",
+          "ProductionYear": "2024",
+          "LengthInMinutes": "135",
+          "Rating": "K-16",
+          "RatingLabel": "Alle 16-vuotiailta kielletty",
+          "RatingImageUrl": "https://media.finnkino.fi/rating/K16.png",
+          "LocalDistributorName": "Future Films",
+          "GlobalDistributorName": "Global Future",
+          "PresentationMethod": "IMAX",
+          "PresentationMethodAndLanguage": "IMAX, englanti/suomi tekstitys",
+          "EventType": "Movie",
+          "GenreString": "Sci-Fi, Thriller",
+          "TheatreAuditoriums": "1014,1016,1021",
+          "Images": {
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12347/portrait_small/test3.jpg",
+            "EventMediumImagePortrait": "https://media.finnkino.fi/1012/Event_12347/portrait_medium/test3.jpg",
+            "EventLargeImagePortrait": "https://media.finnkino.fi/1012/Event_12347/portrait_large/test3.jpg"
+          }
+        }
+      ]
+    }
+  }
+}

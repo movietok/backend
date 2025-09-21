@@ -1,4 +1,5 @@
 import xml2js from 'xml2js';
+import FinnkinoCache from '../utils/FinnkinoCache.js';
 
 class FinnkinoService {
   constructor() {
@@ -8,13 +9,27 @@ class FinnkinoService {
       ignoreAttrs: false,
       mergeAttrs: true 
     });
+    this.cache = FinnkinoCache;
   }
 
   /**
-   * Hae XML-data Finnkino API:sta ja muunna JSON:ksi ( tehtiin useragentti, jotta vältytään banneilta )
+   * Hae XML-data Finnkino API:sta ja muunna JSON:ksi (tehtiin useragentti, jotta vältytään banneilta)
+   * Käyttää cache-järjestelmää parantaakseen luotettavuutta
    */
   async fetchXmlData(url) {
     try {
+      // Generate cache key for this request
+      const cacheKey = this.cache.generateCacheKey(url);
+      
+      // Try to get data from cache first
+      const cachedData = await this.cache.getFromCache(cacheKey);
+      if (cachedData) {
+        console.log(`📂 Using cached data for: ${url}`);
+        return cachedData.data;
+      }
+
+      // If not in cache or expired, fetch from API
+      console.log(`🌐 Fetching fresh data from: ${url}`);
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'MovieTok-Backend/1.0.0',
@@ -26,14 +41,34 @@ class FinnkinoService {
       });
       
       if (!response.ok) {
+        // If API call fails, try to use cached data even if expired
+        const expiredCachedData = await this.cache.getFromCache(cacheKey);
+        if (expiredCachedData) {
+          console.log(`⚠️ API failed (${response.status}), using expired cache for: ${url}`);
+          return expiredCachedData.data;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const xmlData = await response.text();
       const result = await this.parser.parseStringPromise(xmlData);
+      
+      // Save successful response to cache
+      await this.cache.saveToCache(cacheKey, result);
+      console.log(`💾 Cached fresh data for: ${url}`);
+      
       return result;
     } catch (error) {
       console.error('Finnkino API error:', error);
+      
+      // As a last resort, try to use any cached data (even expired)
+      const cacheKey = this.cache.generateCacheKey(url);
+      const fallbackData = await this.cache.getFromCache(cacheKey);
+      if (fallbackData) {
+        console.log(`🚨 Using fallback cache data due to error for: ${url}`);
+        return fallbackData.data;
+      }
+      
       throw new Error(`Failed to fetch data from Finnkino: ${error.message}`);
     }
   }
@@ -318,6 +353,32 @@ class FinnkinoService {
       ticketUrl: show.ShowURL || '',
       eventUrl: show.EventURL || ''
     };
+  }
+
+  /**
+   * Cache management methods
+   */
+  
+  /**
+   * Get cache statistics
+   */
+  async getCacheStats() {
+    return await this.cache.getCacheStats();
+  }
+
+  /**
+   * Clear all cached data
+   */
+  async clearCache() {
+    return await this.cache.clearAllCache();
+  }
+
+  /**
+   * Clear specific cache entry
+   */
+  async clearCacheForUrl(url) {
+    const cacheKey = this.cache.generateCacheKey(url);
+    return await this.cache.clearCache(cacheKey);
   }
 
   /**

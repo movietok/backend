@@ -7,6 +7,7 @@ describe('Review API Tests', () => {
   let authToken;
   let userId;
   let testMovieId = 'test-movie-123';
+  let reviewId; // Add reviewId at the top level scope
 
   before(async () => {
     // Create a test user and get auth token
@@ -67,6 +68,9 @@ describe('Review API Tests', () => {
       expect(response.body.data.review).to.have.property('id');
       expect(response.body.data.review.rating).to.equal(4);
       expect(response.body.data.review.content).to.equal('Great movie!');
+      
+      // Store the reviewId for later tests
+      reviewId = response.body.data.review.id;
     });
 
     it('should not allow duplicate reviews', async () => {
@@ -199,13 +203,13 @@ describe('Review API Tests', () => {
   });
 
   describe('POST /api/reviews/:id/interaction', () => {
-    let reviewId;
-
     before(async () => {
-      // Get the review ID
-      const response = await request(app)
-        .get(`/api/reviews/user/${userId}`);
-      reviewId = response.body.data.reviews[0].id;
+      // Ensure we have a review ID from the previous test
+      if (!reviewId) {
+        const response = await request(app)
+          .get(`/api/reviews/user/${userId}`);
+        reviewId = response.body.data.reviews[0].id;
+      }
     });
 
     it('should not allow liking own review', async () => {
@@ -218,6 +222,116 @@ describe('Review API Tests', () => {
 
       expect(response.status).to.equal(400);
       expect(response.body.message).to.include('own review');
+    });
+  });
+
+  describe('GET /api/reviews/:id', () => {
+    it('should get a specific review by ID', async () => {
+      const response = await request(app)
+        .get(`/api/reviews/${reviewId}`)
+        .expect(200);
+
+      expect(response.body).to.have.property('status', 'success');
+      expect(response.body).to.have.property('data');
+      expect(response.body.data.review).to.have.property('id', reviewId);
+      expect(response.body.data.review).to.have.property('content', 'Great movie!');
+    });
+
+    it('should return 404 for non-existent review', async () => {
+      const response = await request(app)
+        .get('/api/reviews/99999')
+        .expect(404);
+
+      expect(response.body).to.have.property('status', 'error');
+      expect(response.body).to.have.property('message', 'Review not found');
+    });
+
+    it('should return 400 for invalid review ID', async () => {
+      const response = await request(app)
+        .get('/api/reviews/invalid-id')
+        .expect(400);
+
+      expect(response.body).to.have.property('success', false);
+      expect(response.body).to.have.property('error');
+    });
+  });
+
+  describe('DELETE /api/reviews/:id', () => {
+    let deleteReviewId;
+
+    beforeEach(async () => {
+      // Create a review for deletion testing
+      const response = await request(app)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          movie_id: 'delete-test-movie',
+          content: 'Review to be deleted',
+          rating: 3
+        })
+        .expect(201);
+
+      deleteReviewId = response.body.review.id;
+    });
+
+    it('should delete own review successfully', async () => {
+      const response = await request(app)
+        .delete(`/api/reviews/${deleteReviewId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).to.have.property('success', true);
+      expect(response.body).to.have.property('message', 'Review deleted successfully');
+
+      // Verify review is deleted
+      await request(app)
+        .get(`/api/reviews/${deleteReviewId}`)
+        .expect(404);
+    });
+
+    it('should not delete review without authentication', async () => {
+      const response = await request(app)
+        .delete(`/api/reviews/${deleteReviewId}`)
+        .expect(401);
+
+      expect(response.body).to.have.property('error', 'No token provided');
+    });
+
+    it('should not delete other users review', async () => {
+      // Create another user and review
+      const otherUser = {
+        username: 'otheruser2',
+        email: 'other2@test.com',
+        password: 'password123'
+      };
+
+      await request(app)
+        .post('/api/users/register')
+        .send(otherUser);
+
+      const loginResponse = await request(app)
+        .post('/api/users/login')
+        .send({ email: otherUser.email, password: otherUser.password });
+
+      const otherToken = loginResponse.body.token;
+
+      const response = await request(app)
+        .delete(`/api/reviews/${deleteReviewId}`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .expect(403);
+
+      expect(response.body).to.have.property('success', false);
+      expect(response.body.message).to.include('delete');
+    });
+
+    it('should return 404 for non-existent review deletion', async () => {
+      const response = await request(app)
+        .delete('/api/reviews/99999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body).to.have.property('success', false);
+      expect(response.body).to.have.property('error', 'Review not found');
     });
   });
 });

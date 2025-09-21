@@ -1,0 +1,61 @@
+{
+  "timestamp": "2025-01-21T15:30:00.000Z",
+  "data": {
+    "Schedule": {
+      "Shows": {
+        "Show": [
+          {
+            "ID": "212345",
+            "dtLocalRelease": "2025-01-21T15:00:00",
+            "dtLocalRelease2": "2025-01-21T15:00:00",
+            "dttmShowStart": "2025-01-21T15:00:00",
+            "dttmShowEnd": "2025-01-21T17:00:00",
+            "EventID": "12345",
+            "Title": "Test Movie",
+            "OriginalTitle": "Test Movie",
+            "ProductionYear": "2024",
+            "LengthInMinutes": "120",
+            "Rating": "K-12",
+            "RatingLabel": "Ei alle 12-vuotiaille",
+            "RatingImageUrl": "https://media.finnkino.fi/rating/K12.png",
+            "Genres": "action, adventure, sci-fi",
+            "TheatreID": "1014",
+            "TheatreAudiId": "1014:1",
+            "Theatre": "Tennispalatsi, Helsinki",
+            "TheatreAuditorium": "sali 1",
+            "TheatreAndAuditorium": "Tennispalatsi, Helsinki, sali 1",
+            "PresentationMethod": "2D",
+            "PresentationMethodAndLanguage": "2D, englanti",
+            "EventURL": "https://www.finnkino.fi/event/12345/show/212345",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_small/TestMovie.jpg"
+          },
+          {
+            "ID": "212346",
+            "dtLocalRelease": "2025-01-22T19:00:00",
+            "dtLocalRelease2": "2025-01-22T19:00:00",
+            "dttmShowStart": "2025-01-22T19:00:00",
+            "dttmShowEnd": "2025-01-22T21:00:00",
+            "EventID": "12345",
+            "Title": "Test Movie",
+            "OriginalTitle": "Test Movie",
+            "ProductionYear": "2024",
+            "LengthInMinutes": "120",
+            "Rating": "K-12",
+            "RatingLabel": "Ei alle 12-vuotiaille",
+            "RatingImageUrl": "https://media.finnkino.fi/rating/K12.png",
+            "Genres": "action, adventure, sci-fi",
+            "TheatreID": "1014",
+            "TheatreAudiId": "1014:2",
+            "Theatre": "Tennispalatsi, Helsinki",
+            "TheatreAuditorium": "sali 2",
+            "TheatreAndAuditorium": "Tennispalatsi, Helsinki, sali 2",
+            "PresentationMethod": "2D",
+            "PresentationMethodAndLanguage": "2D, englanti",
+            "EventURL": "https://www.finnkino.fi/event/12345/show/212346",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_small/TestMovie.jpg"
+          }
+        ]
+      }
+    }
+  }
+}
