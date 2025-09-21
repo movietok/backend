@@ -78,7 +78,7 @@ app.listen(serverConfig.port, () => {
   console.log(`📊 CORS origins: ${Array.isArray(serverConfig.cors.origin) ? serverConfig.cors.origin.join(', ') : serverConfig.cors.origin}`);
   
   if (config.environment === 'development') {
-    console.log(`🔗 Health check: http://localhost:${serverConfig.port}/health`);
+    console.log(`🔗 Health check: http://localhost:${serverConfig.port}/api/health`);
     console.log(`📚 API docs: http://localhost:${serverConfig.port}/api/users`);
   }
 });
