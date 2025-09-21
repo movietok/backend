@@ -1,0 +1,49 @@
+{
+  "timestamp": 1726931052000,
+  "data": {
+    "TheatreAreas": {
+      "TheatreArea": [
+        {
+          "ID": "1014",
+          "Name": "Pääkaupunkiseutu"
+        },
+        {
+          "ID": "1015", 
+          "Name": "Espoo"
+        },
+        {
+          "ID": "1016",
+          "Name": "Helsinki"
+        },
+        {
+          "ID": "1017",
+          "Name": "Vantaa"
+        },
+        {
+          "ID": "1021",
+          "Name": "Tampere"
+        },
+        {
+          "ID": "1033",
+          "Name": "Turku"
+        },
+        {
+          "ID": "1041",
+          "Name": "Jyväskylä"
+        },
+        {
+          "ID": "1047",
+          "Name": "Kuopio"
+        },
+        {
+          "ID": "1049",
+          "Name": "Lahti"
+        },
+        {
+          "ID": "1002",
+          "Name": "Oulu"
+        }
+      ]
+    }
+  }
+}

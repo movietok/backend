@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-01-21T15:30:00.000Z",
+  "data": {
+    "Schedule": {
+      "Shows": {
+        "Show": [
+          {
+            "ID": "112345",
+            "dtLocalRelease": "2025-01-21T10:00:00",
+            "dtLocalRelease2": "2025-01-21T10:00:00",
+            "dttmShowStart": "2025-01-21T10:00:00",
+            "dttmShowEnd": "2025-01-21T12:00:00",
+            "EventID": "302654",
+            "Title": "Mufasa: The Lion King",
+            "OriginalTitle": "Mufasa: The Lion King",
+            "ProductionYear": "2024",
+            "LengthInMinutes": "118",
+            "Rating": "S",
+            "RatingLabel": "Sallittu",
+            "RatingImageUrl": "https://media.finnkino.fi/rating/S.png",
+            "Genres": "animaatio, draama, perhe, musiikki, seikkailu",
+            "TheatreID": "1014",
+            "TheatreAudiId": "1014:4",
+            "Theatre": "Tennispalatsi, Helsinki",
+            "TheatreAuditorium": "sali 4",
+            "TheatreAndAuditorium": "Tennispalatsi, Helsinki, sali 4",
+            "PresentationMethod": "2D",
+            "PresentationMethodAndLanguage": "2D, suomi",
+            "EventURL": "https://www.finnkino.fi/event/302654/show/112345",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_302654/portrait_small/Mufasa_2024.jpg"
+          },
+          {
+            "ID": "112346",
+            "dtLocalRelease": "2025-01-22T14:00:00",
+            "dtLocalRelease2": "2025-01-22T14:00:00",
+            "dttmShowStart": "2025-01-22T14:00:00",
+            "dttmShowEnd": "2025-01-22T16:00:00",
+            "EventID": "302654",
+            "Title": "Mufasa: The Lion King",
+            "OriginalTitle": "Mufasa: The Lion King",
+            "ProductionYear": "2024",
+            "LengthInMinutes": "118",
+            "Rating": "S",
+            "RatingLabel": "Sallittu",
+            "RatingImageUrl": "https://media.finnkino.fi/rating/S.png",
+            "Genres": "animaatio, draama, perhe, musiikki, seikkailu",
+            "TheatreID": "1014",
+            "TheatreAudiId": "1014:5",
+            "Theatre": "Tennispalatsi, Helsinki",
+            "TheatreAuditorium": "sali 5",
+            "TheatreAndAuditorium": "Tennispalatsi, Helsinki, sali 5",
+            "PresentationMethod": "2D",
+            "PresentationMethodAndLanguage": "2D, suomi",
+            "EventURL": "https://www.finnkino.fi/event/302654/show/112346",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_302654/portrait_small/Mufasa_2024.jpg"
+          },
+          {
+            "ID": "112347",
+            "dtLocalRelease": "2025-01-23T18:00:00",
+            "dtLocalRelease2": "2025-01-23T18:00:00",
+            "dttmShowStart": "2025-01-23T18:00:00",
+            "dttmShowEnd": "2025-01-23T20:00:00",
+            "EventID": "302654",
+            "Title": "Mufasa: The Lion King",
+            "OriginalTitle": "Mufasa: The Lion King",
+            "ProductionYear": "2024",
+            "LengthInMinutes": "118",
+            "Rating": "S",
+            "RatingLabel": "Sallittu",
+            "RatingImageUrl": "https://media.finnkino.fi/rating/S.png",
+            "Genres": "animaatio, draama, perhe, musiikki, seikkailu",
+            "TheatreID": "1014",
+            "TheatreAudiId": "1014:6",
+            "Theatre": "Tennispalatsi, Helsinki",
+            "TheatreAuditorium": "sali 6",
+            "TheatreAndAuditorium": "Tennispalatsi, Helsinki, sali 6",
+            "PresentationMethod": "2D",
+            "PresentationMethodAndLanguage": "2D, suomi",
+            "EventURL": "https://www.finnkino.fi/event/302654/show/112347",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_302654/portrait_small/Mufasa_2024.jpg"
+          }
+        ]
+      }
+    }
+  }
+}

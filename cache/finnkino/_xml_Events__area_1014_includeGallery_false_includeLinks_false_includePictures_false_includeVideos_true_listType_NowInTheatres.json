@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-01-21T15:30:00.000Z",
+  "data": {
+    "Events": {
+      "Event": [
+        {
+          "ID": "302654",
+          "Title": "Mufasa: The Lion King",
+          "OriginalTitle": "Mufasa: The Lion King",
+          "ProductionYear": "2024",
+          "LengthInMinutes": "118",
+          "dtLocalRelease": "2024-12-19T00:00:00",
+          "Rating": "S",
+          "RatingLabel": "Sallittu",
+          "RatingImageUrl": "https://media.finnkino.fi/rating/S.png",
+          "LocalDistributorName": "Walt Disney Studios Motion Pictures",
+          "GlobalDistributorName": "Walt Disney Pictures",
+          "ProductionCompanies": "Walt Disney Pictures",
+          "Genres": "animaatio, draama, perhe, musiikki, seikkailu",
+          "TheatreAuditoriums": "1014:4,1014:5,1014:6",
+          "Synopsis": "Mufasa: The Lion King on liikuttava tarina siitä, miten orpo Mufasa kasvaa kuninkaaksi.",
+          "EventURL": "https://www.finnkino.fi/event/302654",
+          "Images": {
+            "EventMediumImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_medium/Mufasa_2024.jpg",
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_small/Mufasa_2024.jpg",
+            "EventLargeImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_large/Mufasa_2024.jpg"
+          },
+          "Videos": {
+            "EventVideo": [
+              {
+                "Title": "Mufasa: The Lion King - Trailer",
+                "ThumbnailLocation": "https://media.finnkino.fi/1012/Event_12345/video_thumbnail1.jpg",
+                "Location": "https://www.youtube.com/embed/abcd1234"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

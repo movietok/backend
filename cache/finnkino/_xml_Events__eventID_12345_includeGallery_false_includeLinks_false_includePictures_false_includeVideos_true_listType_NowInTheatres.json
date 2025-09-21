@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-01-21T15:30:00.000Z",
+  "data": {
+    "Events": {
+      "Event": {
+        "ID": "12345",
+        "Title": "Test Movie",
+        "OriginalTitle": "Test Movie",
+        "ProductionYear": "2024",
+        "LengthInMinutes": "120",
+        "dtLocalRelease": "2024-12-01T00:00:00",
+        "Rating": "K-12",
+        "RatingLabel": "Ei alle 12-vuotiaille",
+        "RatingImageUrl": "https://media.finnkino.fi/rating/K12.png",
+        "LocalDistributorName": "Test Distributor",
+        "GlobalDistributorName": "Test Global",
+        "ProductionCompanies": "Test Productions",
+        "Genres": "action, adventure, sci-fi",
+        "TheatreAuditoriums": "1014:1,1014:2",
+        "Synopsis": "This is a test movie for testing purposes.",
+        "EventURL": "https://www.finnkino.fi/event/12345",
+        "Images": {
+          "EventMediumImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_medium/TestMovie.jpg",
+          "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_small/TestMovie.jpg",
+          "EventLargeImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_large/TestMovie.jpg"
+        },
+        "Videos": {
+          "EventVideo": [
+            {
+              "Title": "Test Movie - Trailer",
+              "ThumbnailLocation": "https://media.finnkino.fi/1012/Event_12345/video_thumbnail1.jpg",
+              "Location": "https://www.youtube.com/embed/test1234"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
