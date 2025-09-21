@@ -8,6 +8,8 @@
     "start": "cross-env NODE_ENV=production node index.js",
     "start:prod": "cross-env NODE_ENV=production node index.js",
     "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "devStart": "cross-env NODE_ENV=development nodemon index.js",
+    "start:dev": "cross-env NODE_ENV=development node index.js",
     "test": "cross-env NODE_ENV=test mocha tests/*.test.js",
     "test:coverage": "cross-env NODE_ENV=test nyc mocha tests/*.test.js",
     "test:watch": "cross-env NODE_ENV=test mocha tests/*.test.js --watch",

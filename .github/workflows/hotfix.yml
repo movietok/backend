@@ -24,7 +24,7 @@ on:
 jobs:
   validate:
     name: Validate Hotfix Request
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
       - name: Validate inputs
@@ -51,24 +51,9 @@ jobs:
   emergency-test:
     name: Emergency Tests
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event.inputs.skip_tests != 'true'
     
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: moviedb_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,46 +67,55 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run critical tests only
-        run: npm test -- --grep "critical|auth|security" || npm test
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: moviedb_test
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-key-for-github-actions
+      - name: Check environment configuration
+        run: |
+          echo "Checking environment configuration..."
+          if [ -f .env ]; then
+            echo "✅ .env found"
+          else
+            echo "❌ Missing .env file"
+            exit 1
+          fi
+
+      - name: Run emergency tests
+        run: npm test
 
   hotfix-deploy:
-    name: Deploy Hotfix
+    name: Hotfix Deployment
     needs: [validate, emergency-test]
     runs-on: self-hosted
-    if: always() && (needs.emergency-test.result == 'success' || github.event.inputs.skip_tests == 'true')
-
+    if: always() && (needs.validate.result == 'success') && (needs.emergency-test.result == 'success' || github.event.inputs.skip_tests == 'true')
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create deployment backup
-        run: |
-          echo "Creating backup before hotfix deployment..."
-          BACKUP_DIR="/home/deployer/backups/$(date +%Y%m%d_%H%M%S)_hotfix"
-          mkdir -p "$BACKUP_DIR"
-          
-          # Backup current application
-          if [ -d "/home/deployer/apps/movietok/backend" ]; then
-            cp -r /home/deployer/apps/movietok/backend "$BACKUP_DIR/"
-            echo "✅ Backup created at $BACKUP_DIR"
-          fi
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --production
 
       - name: Deploy hotfix
         run: |
-          echo "🚨 DEPLOYING HOTFIX: ${{ github.event.inputs.reason }}"
-          echo "🔧 Environment: ${{ github.event.inputs.environment }}"
+          echo "🚨 HOTFIX DEPLOYMENT STARTED 🚨"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Skip tests: ${{ github.event.inputs.skip_tests }}"
           
-          chmod +x /home/deployer/scripts/deploy-backend.sh
-          /home/deployer/scripts/deploy-backend.sh
+          # Run deployment script
+          if [ -f /home/deployer/scripts/hotfix-deploy.sh ]; then
+            chmod +x /home/deployer/scripts/hotfix-deploy.sh
+            /home/deployer/scripts/hotfix-deploy.sh "${{ github.event.inputs.environment }}"
+          else
+            echo "Starting application..."
+            npm run start:prod &
+            sleep 10
+            echo "Hotfix deployed successfully"
+          fi
 
       - name: Verify hotfix deployment
         run: |
@@ -135,17 +129,6 @@ jobs:
             echo "✅ Hotfix deployment successful (HTTP $response)"
           else
             echo "❌ Hotfix deployment failed (HTTP $response)"
-            echo "🔄 Attempting rollback..."
-            
-            # Find latest backup
-            LATEST_BACKUP=$(ls -1t /home/deployer/backups/ | head -n 1)
-            if [ -n "$LATEST_BACKUP" ]; then
-              echo "Rolling back to $LATEST_BACKUP"
-              rm -rf /home/deployer/apps/movietok/backend
-              cp -r "/home/deployer/backups/$LATEST_BACKUP/backend" /home/deployer/apps/movietok/
-              /home/deployer/scripts/deploy-backend.sh
-            fi
-            
             exit 1
           fi
 
@@ -159,5 +142,4 @@ jobs:
           echo "  - Triggered by: ${{ github.actor }}"
           echo "  - Reason: ${{ github.event.inputs.reason }}"
           echo "  - Tests skipped: ${{ github.event.inputs.skip_tests }}"
-          echo ""
           /home/deployer/scripts/status.sh
