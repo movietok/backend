@@ -10,23 +10,8 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: moviedb_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,27 +25,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check environment configuration
+        run: |
+          echo "Checking environment configuration..."
+          if [ -f .env ]; then
+            echo "✅ .env found"
+          else
+            echo "❌ Missing .env file"
+            exit 1
+          fi
+          if [ -f .env.example ]; then
+            echo "✅ .env.example found"
+          else
+            echo "❌ Missing .env.example"
+            exit 1
+          fi
+
       - name: Create test database
-        run: npm run db:create:test
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: moviedb_test
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-key-for-github-actions
+        run: npm run db:setup:test
 
       - name: Run tests
         run: npm test
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: moviedb_test
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-key-for-github-actions
 
   deploy:
     name: Deploy to Production
