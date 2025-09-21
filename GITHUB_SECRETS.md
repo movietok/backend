@@ -1,14 +1,19 @@
 # GitHub Actions Self-Hosted Runner Configuration
 
-Tämä dokumentti kuvaa GitHub Actions -konfiguraation self-hosted runnerille, jossa on olemassa .env-tiedosto ja PostgreSQL asennettuna.
+Tämä dokumentti kuvaa GitHub Actions -konfiguraation self-hosted runnerille `instance-20250919-0048`.
 
 ## Self-Hosted Runner Setup
+
+### Runner Info:
+- **Name**: `instance-20250919-0048`
+- **Labels**: `self-hosted`, `Linux`, `X64`
+- **Käyttö**: Kaikki workflow-tiedostot käyttävät tätä runneria
 
 ### Esivaatimukset palvelimella:
 - ✅ Node.js 22 asennettuna
 - ✅ PostgreSQL asennettuna ja käynnissä
 - ✅ .env tiedosto sovelluksen juuressa
-- ✅ GitHub Actions runner konfiguroituna
+- ✅ GitHub Actions runner `instance-20250919-0048` käynnissä
 
 ### Environment Variables (.env)
 Self-hosted runnerilla sovellus lukee kaikki ympäristömuuttujat .env tiedostosta:
@@ -25,45 +30,39 @@ TMDB_API_KEY=your-tmdb-api-key
 FINNKINO_API_BASE_URL=https://www.finnkino.fi
 ```
 
-### Production Environment (.env)
-Production-deploymentissa käytetään samaa .env tiedostoa, mutta NODE_ENV asetetaan production:
-```env
-NODE_ENV=production
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=moviedb_production
-DB_USER=postgres
-DB_PASSWORD=your-production-password
-JWT_SECRET=your-production-jwt-secret
-TMDB_API_KEY=your-tmdb-api-key
-FINNKINO_API_BASE_URL=https://www.finnkino.fi
+## GitHub Actions Konfiguraatio
+
+### Kaikki workflow-tiedostot käyttävät self-hosted:
+```yaml
+runs-on: self-hosted  # runner: instance-20250919-0048
 ```
 
-## GitHub Actions Muutokset
-
 ### test.yml
-- ✅ `runs-on: self-hosted` (ei enää ubuntu-latest)
-- ✅ Ei PostgreSQL Docker-konttia (käyttää paikallista PostgreSQL:ää)
-- ✅ Ei kovakoodattuja env-muuttujia (lukee .env:stä)
+- ✅ `runs-on: self-hosted` molemmissa jobeissa
+- ✅ Ei PostgreSQL Docker-konttia
+- ✅ Lukee .env tiedostoa automaattisesti
 - ✅ Environment configuration check
 
 ### deploy.yml  
-- ✅ `runs-on: self-hosted` molemmissa jobeissa
+- ✅ `runs-on: self-hosted` kaikissa jobeissa (test, deploy, health-check)
 - ✅ Ei PostgreSQL Docker-konttia 
-- ✅ Ei GitHub Secrets:eja (lukee .env:stä)
-- ✅ Environment configuration check
+- ✅ Lukee .env tiedostoa automaattisesti
+- ✅ Production deployment scripts
 
-## Ei Enää Tarvittavia Secretejä
+### hotfix.yml
+- ✅ `runs-on: self-hosted` kaikissa jobeissa
+- ✅ Emergency deployment workflow
+- ✅ Lukee .env tiedostoa automaattisesti
+- ✅ Hotfix deployment ja verification
 
-Koska self-hosted runner lukee .env-tiedostosta, seuraavia GitHub Secrets:eja **EI TARVITA**:
-- ~~PROD_DB_HOST~~
-- ~~PROD_DB_PORT~~  
-- ~~PROD_DB_NAME~~
-- ~~PROD_DB_USER~~
-- ~~PROD_DB_PASSWORD~~
-- ~~PROD_JWT_SECRET~~
-- ~~TMDB_API_KEY~~
-- ~~FINNKINO_API_BASE_URL~~
+## Ei GitHub Secrets:eja Tarvita
+
+Koska self-hosted runner lukee .env-tiedostosta, **EI TARVITA**:
+- ~~GitHub Secrets~~
+- ~~Docker PostgreSQL~~
+- ~~Kovakoodattuja env-muuttujia~~
+
+✅ **Kaikki config .env:ssä palvelimella**
 
 ## Package.json Scripts
 
