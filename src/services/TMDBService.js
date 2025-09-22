@@ -127,6 +127,25 @@ class TMDBService {
   }
 
   /**
+   * Get top rated movies from TMDB
+   * @param {number} count - Number of movies to retrieve (default: 10)
+   * @param {string} language - Language code (default: 'en-US')
+   */
+  async getTopRatedMovies(count = 10, language = 'en-US') {
+    try {
+      const data = await this.fetchTMDBData('/movie/top_rated', {
+        language: language || 'en-US',
+        page: 1
+      });
+      return this.formatMovieList((data.results || []).slice(0, count));
+    } catch (error) {
+      throw new Error(`Failed to fetch top rated movies: ${error.message}`);
+    }
+  }
+
+
+
+  /**
    * Format basic movie data for list views
    * @private
    */

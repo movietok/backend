@@ -53,3 +53,16 @@ export const getTopPopularMovies = async (req, res) => {
     res.status(500).json({ error: error.message }); 
   }
 };
+
+export const getTopRatedMovies = async (req, res) => {
+  try {
+    const { count, language } = req.query;
+    const movies = await TMDBService.getTopRatedMovies(Number(count) || 10, language || 'en');
+    res.json(movies);
+  } catch (error) {
+    console.error('Error fetching top rated movies:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
