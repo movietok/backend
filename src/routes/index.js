@@ -19,14 +19,12 @@ router.get('/health', (req, res) => {
 router.use('/api/v1/users', userRoutes);
 router.use('/api/v1/reviews', reviewRoutes);
 router.use('/api/v1/tmdb', tmdbRoutes);
-
-// Legacy routes (backward compatibility)
-router.use('/api/users', userRoutes);
-router.use('/api/reviews', reviewRoutes);
 router.use('/api/v1/finnkino', finnkinoRoutes);
 
 // Legacy routes (backward compatibility)
 router.use('/api/users', userRoutes);
+router.use('/api/reviews', reviewRoutes);
 router.use('/api/finnkino', finnkinoRoutes);
+router.use('/api/tmdb', tmdbRoutes);
 
 export default router;
