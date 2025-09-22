@@ -1,0 +1,38 @@
+{
+  "apps": [
+    {
+      "name": "server-prod",
+      "script": "npm",
+      "args": "start",
+      "cwd": "/home/deployer/apps/movietok/backend",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": false,
+      "ignore_watch": ["node_modules", "logs", "cache"],
+      "log_file": "/home/deployer/.pm2/logs/server-prod.log",
+      "error_file": "/home/deployer/.pm2/logs/server-prod-error.log",
+      "out_file": "/home/deployer/.pm2/logs/server-prod-out.log",
+      "time": true
+    },
+    {
+      "name": "server-dev",
+      "script": "npm",
+      "args": "run devStart",
+      "cwd": "/home/deployer/apps/movietok/backend",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": true,
+      "ignore_watch": ["node_modules", "logs", "cache", "tests"],
+      "log_file": "/home/deployer/.pm2/logs/server-dev.log",
+      "error_file": "/home/deployer/.pm2/logs/server-dev-error.log",
+      "out_file": "/home/deployer/.pm2/logs/server-dev-out.log",
+      "time": true
+    }
+  ]
+}

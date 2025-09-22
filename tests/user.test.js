@@ -4,6 +4,7 @@ import app from '../index.js';
 
 describe('User API Tests', () => {
   let authToken;
+  let userId; // Add userId for admin tests
   let testUser = {
     username: 'testuser',
     email: 'test@example.com',
@@ -13,7 +14,7 @@ describe('User API Tests', () => {
   describe('Health Check', () => {
     it('should return OK status', async () => {
       const res = await request(app)
-        .get('/health')
+        .get('/api/health')
         .expect(200);
 
       expect(res.body).to.have.property('status', 'OK');
@@ -82,6 +83,7 @@ describe('User API Tests', () => {
       expect(res.body.user).to.have.property('email', testUser.email);
       
       authToken = res.body.token;
+      userId = res.body.user.id; // Capture userId for later tests
     });
 
     it('should not login with incorrect credentials', async () => {
@@ -187,6 +189,120 @@ describe('User API Tests', () => {
         .expect(400);
 
       expect(res.body).to.have.property('error', 'Invalid pagination parameters');
+    });
+  });
+
+  describe('User Profile Management', () => {
+    it('should delete user profile with valid token', async () => {
+      // Create a test user for deletion
+      const deleteUser = {
+        username: 'deletetest',
+        email: 'delete@test.com',
+        password: 'password123'
+      };
+
+      const registerRes = await request(app)
+        .post('/api/users/register')
+        .send(deleteUser)
+        .expect(201);
+
+      const loginRes = await request(app)
+        .post('/api/users/login')
+        .send({ email: deleteUser.email, password: deleteUser.password })
+        .expect(200);
+
+      const deleteToken = loginRes.body.token;
+
+      const res = await request(app)
+        .delete('/api/users/profile')
+        .set('Authorization', `Bearer ${deleteToken}`)
+        .expect(200);
+
+      expect(res.body).to.have.property('message', 'User account deleted successfully');
+    });
+
+    it('should not delete profile without token', async () => {
+      const res = await request(app)
+        .delete('/api/users/profile')
+        .expect(401);
+
+      expect(res.body).to.have.property('error', 'Access token required');
+    });
+  });
+
+  describe('Admin User Management', () => {
+    it('should update user by ID with admin token', async () => {
+      const res = await request(app)
+        .put(`/api/users/${userId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          username: 'updateduser',
+          email: 'updated@test.com'
+        })
+        .expect(200);
+
+      expect(res.body).to.have.property('message', 'User updated successfully');
+      expect(res.body.user).to.have.property('username', 'updateduser');
+    });
+
+    it('should not update user with invalid data', async () => {
+      const res = await request(app)
+        .put(`/api/users/${userId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          username: '', // Invalid empty username
+          email: 'invalid-email' // Invalid email format
+        })
+        .expect(400);
+
+      expect(res.body).to.have.property('error');
+    });
+
+    it('should delete user by ID with admin token', async () => {
+      // Create a user to delete
+      const testUser = {
+        username: 'deletebyid',
+        email: 'deletebyid@test.com',
+        password: 'password123'
+      };
+
+      const createRes = await request(app)
+        .post('/api/users/register')
+        .send(testUser)
+        .expect(201);
+
+      const userToDeleteId = createRes.body.user.id;
+
+      const res = await request(app)
+        .delete(`/api/users/${userToDeleteId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(res.body).to.have.property('message', 'User deleted successfully');
+
+      // Verify user is deleted
+      await request(app)
+        .get(`/api/users/${userToDeleteId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+    });
+
+    it('should not delete non-existent user', async () => {
+      const res = await request(app)
+        .delete('/api/users/99999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(res.body).to.have.property('error');
+    });
+
+    it('should not allow user to delete themselves via admin route', async () => {
+      const res = await request(app)
+        .delete(`/api/users/${userId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(res.body).to.have.property('error', 'Cannot delete own account');
     });
   });
 });

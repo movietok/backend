@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     real_name 			VARCHAR(50),
     last_activity_at 	TIMESTAMP,
     created_at 			TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at 			TIMESTAMP DEFAULT now(),
     date_of_birth 		DATE
 );
 

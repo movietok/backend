@@ -1,0 +1,145 @@
+name: Hotfix Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      skip_tests:
+        description: 'Skip tests (emergency deployment only)'
+        required: false
+        default: false
+        type: boolean
+      reason:
+        description: 'Reason for hotfix deployment'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    name: Validate Hotfix Request
+    runs-on: self-hosted
+    
+    steps:
+      - name: Validate inputs
+        run: |
+          echo "🚨 HOTFIX DEPLOYMENT REQUESTED"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Skip tests: ${{ github.event.inputs.skip_tests }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          
+          # Validate that we're deploying from main branch
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "❌ Hotfix deployment only allowed from main branch"
+            echo "Current branch: ${{ github.ref_name }}"
+            exit 1
+          fi
+          
+          if [ -z "${{ github.event.inputs.reason }}" ]; then
+            echo "❌ Reason is required for hotfix deployment"
+            exit 1
+          fi
+
+  emergency-test:
+    name: Emergency Tests
+    needs: validate
+    runs-on: self-hosted
+    if: github.event.inputs.skip_tests != 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check environment configuration
+        run: |
+          echo "Checking environment configuration..."
+          if [ -f .env ]; then
+            echo "✅ .env found"
+          else
+            echo "❌ Missing .env file"
+            exit 1
+          fi
+
+      - name: Run emergency tests
+        run: npm test
+
+  hotfix-deploy:
+    name: Hotfix Deployment
+    needs: [validate, emergency-test]
+    runs-on: self-hosted
+    if: always() && (needs.validate.result == 'success') && (needs.emergency-test.result == 'success' || github.event.inputs.skip_tests == 'true')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --production
+
+      - name: Deploy hotfix
+        run: |
+          echo "🚨 HOTFIX DEPLOYMENT STARTED 🚨"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Skip tests: ${{ github.event.inputs.skip_tests }}"
+          
+          # Run deployment script
+          if [ -f /home/deployer/scripts/hotfix-deploy.sh ]; then
+            chmod +x /home/deployer/scripts/hotfix-deploy.sh
+            /home/deployer/scripts/hotfix-deploy.sh "${{ github.event.inputs.environment }}"
+          else
+            echo "Starting application..."
+            npm run start:prod &
+            sleep 10
+            echo "Hotfix deployed successfully"
+          fi
+
+      - name: Verify hotfix deployment
+        run: |
+          echo "Verifying hotfix deployment..."
+          sleep 15
+          
+          # Test health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Hotfix deployment successful (HTTP $response)"
+          else
+            echo "❌ Hotfix deployment failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Notify hotfix completion
+        run: |
+          echo "🚨 HOTFIX DEPLOYMENT COMPLETED"
+          echo "📋 Summary:"
+          echo "  - Environment: ${{ github.event.inputs.environment }}"
+          echo "  - Branch: ${{ github.ref_name }}"
+          echo "  - Commit: ${{ github.sha }}"
+          echo "  - Triggered by: ${{ github.actor }}"
+          echo "  - Reason: ${{ github.event.inputs.reason }}"
+          echo "  - Tests skipped: ${{ github.event.inputs.skip_tests }}"
+          /home/deployer/scripts/status.sh

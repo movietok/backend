@@ -1,0 +1,53 @@
+{
+  "timestamp": 1726931052000,
+  "data": {
+    "Events": {
+      "Event": [
+        {
+          "ID": "12345",
+          "Title": "Test Movie 1",
+          "OriginalTitle": "Test Movie 1",
+          "ProductionYear": "2024",
+          "LengthInMinutes": "120",
+          "Rating": "K-12",
+          "RatingLabel": "Alle 12-vuotiailta kielletty",
+          "RatingImageUrl": "https://media.finnkino.fi/rating/K12.png",
+          "LocalDistributorName": "Test Distributor",
+          "GlobalDistributorName": "Global Test",
+          "PresentationMethod": "2D",
+          "PresentationMethodAndLanguage": "2D, suomi",
+          "EventType": "Movie",
+          "GenreString": "Action, Drama",
+          "TheatreAuditoriums": "1014,1015,1016",
+          "Images": {
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_small/test1.jpg",
+            "EventMediumImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_medium/test1.jpg",
+            "EventLargeImagePortrait": "https://media.finnkino.fi/1012/Event_12345/portrait_large/test1.jpg"
+          }
+        },
+        {
+          "ID": "12346", 
+          "Title": "Test Movie 2",
+          "OriginalTitle": "Test Movie 2",
+          "ProductionYear": "2024",
+          "LengthInMinutes": "105",
+          "Rating": "S",
+          "RatingLabel": "Sallittu",
+          "RatingImageUrl": "https://media.finnkino.fi/rating/S.png",
+          "LocalDistributorName": "Test Distributor 2",
+          "GlobalDistributorName": "Global Test 2",
+          "PresentationMethod": "3D",
+          "PresentationMethodAndLanguage": "3D, englanti/suomi tekstitys",
+          "EventType": "Movie",
+          "GenreString": "Comedy, Family",
+          "TheatreAuditoriums": "1014,1021,1033",
+          "Images": {
+            "EventSmallImagePortrait": "https://media.finnkino.fi/1012/Event_12346/portrait_small/test2.jpg",
+            "EventMediumImagePortrait": "https://media.finnkino.fi/1012/Event_12346/portrait_medium/test2.jpg",
+            "EventLargeImagePortrait": "https://media.finnkino.fi/1012/Event_12346/portrait_large/test2.jpg"
+          }
+        }
+      ]
+    }
+  }
+}

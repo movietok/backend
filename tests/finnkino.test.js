@@ -7,7 +7,7 @@ describe('Finnkino API Tests', () => {
   describe('Health Check for Finnkino Integration', () => {
     it('should return OK status', async () => {
       const res = await request(app)
-        .get('/health')
+        .get('/api/health')
         .expect(200);
 
       expect(res.body).to.have.property('status', 'OK');
