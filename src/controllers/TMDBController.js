@@ -31,3 +31,25 @@ export const getMovieDetails = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getGenres = async (req, res) => {
+  try {
+    const { language } = req.query;
+    const genres = await TMDBService.getGenres(language || 'en');
+    res.json(genres);
+  } catch (error) {
+    console.error('Error fetching genres:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getTopPopularMovies = async (req, res) => {
+  try {
+    const { count, language } = req.query;
+    const movies = await TMDBService.getTopPopularMovies(Number(count) || 10, language || 'en');
+    res.json(movies);
+  } catch (error) {
+    console.error('Error fetching top popular movies:', error);
+    res.status(500).json({ error: error.message }); 
+  }
+};
