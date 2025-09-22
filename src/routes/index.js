@@ -51,7 +51,7 @@ router.use('/api/v1/finnkino', finnkinoRoutes);
 // Legacy routes (backward compatibility)
 router.use('/api/users', userRoutes);
 router.use('/api/reviews', reviewRoutes);
-router.use('/api/tmdb', tmdbRoutes);
 router.use('/api/finnkino', finnkinoRoutes);
+router.use('/api/tmdb', tmdbRoutes);
 
 export default router;

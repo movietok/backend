@@ -94,6 +94,58 @@ class TMDBService {
 
 
   /**
+   * Get list of movie genres from TMDB
+   * @param {string} language - Language code (default: 'en')
+   */
+  async getGenres(language = 'en') {
+    try {
+      const data = await this.fetchTMDBData('/genre/movie/list', {
+        language: language
+      });
+      return data.genres;
+    } catch (error) {
+      throw new Error(`Failed to fetch genres: ${error.message}`);
+    }
+  }
+
+  /**'
+   * Get top 10 popular movies from TMDB
+   * @param {number} count - Number of top popular movies to retrieve (default: 10)
+   * @param {string} language - Language code (default: 'en-US')
+   */
+  async getTopPopularMovies(count = 10, language = 'en-US') {
+    try {
+      // Use /movie/popular endpoint
+      const data = await this.fetchTMDBData('/movie/popular', {
+        language: language || 'en-US',
+        page: 1
+      });
+      return this.formatMovieList((data.results || []).slice(0, count));
+    } catch (error) {
+      throw new Error(`Failed to fetch top popular movies: ${error.message}`); 
+    }
+  }
+
+  /**
+   * Get top rated movies from TMDB
+   * @param {number} count - Number of movies to retrieve (default: 10)
+   * @param {string} language - Language code (default: 'en-US')
+   */
+  async getTopRatedMovies(count = 10, language = 'en-US') {
+    try {
+      const data = await this.fetchTMDBData('/movie/top_rated', {
+        language: language || 'en-US',
+        page: 1
+      });
+      return this.formatMovieList((data.results || []).slice(0, count));
+    } catch (error) {
+      throw new Error(`Failed to fetch top rated movies: ${error.message}`);
+    }
+  }
+
+
+
+  /**
    * Format basic movie data for list views
    * @private
    */
@@ -156,6 +208,7 @@ class TMDBService {
       backdropPath: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
       budget: movie.budget,
       revenue: movie.revenue,
+      popularity: movie.popularity,
       // Cast and crew information
       cast: movie.credits?.cast?.slice(0, 10).map(actor => ({
         id: actor.id,
