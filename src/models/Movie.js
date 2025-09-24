@@ -201,11 +201,16 @@ class Movie {
         return existingMovie; // Movie already exists, return it
       }
 
+      // Get the highest current ID and increment it
+      const maxResult = await query('SELECT MAX(id::numeric) as max_id FROM movies');
+      const nextId = maxResult.rows[0].max_id ? (parseInt(maxResult.rows[0].max_id) + 1).toString() : '1';
+
       // Extract year from release date (YYYY-MM-DD format)
       const releaseYear = tmdbData.releaseDate ? parseInt(tmdbData.releaseDate.split('-')[0]) : null;
 
       // Log the data that will be saved
       console.log('TMDB Data to be saved:', {
+        id: nextId,
         tmdb_id: tmdbData.id,
         original_title: tmdbData.originalTitle,
         release_year: releaseYear,
@@ -215,11 +220,13 @@ class Movie {
       // Create new movie with TMDB data
       const result = await query(
         `INSERT INTO movies (
+          id,
           original_title, 
           tmdb_id, 
           release_year
-        ) VALUES ($1, $2, $3) RETURNING *`,
+        ) VALUES ($1, $2, $3, $4) RETURNING *`,
         [
+          nextId,
           tmdbData.originalTitle,
           tmdbData.id,
           releaseYear
