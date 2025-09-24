@@ -66,14 +66,10 @@ CREATE TABLE IF NOT EXISTS group_members (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS movies (
     id 					VARCHAR(255) PRIMARY KEY, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä -Martin
-    title 				TEXT NOT NULL,
-    original_title 		TEXT,
-    description 		TEXT,
-    release_date 		DATE,
-    runtime_minutes 	INTEGER,
+    original_title 		TEXT, NOT NULL,             -- Koko taulua muutettu, vain oleelliset kentät säilytetty + tmdb_id lisätty -Samu
+    release_year 		INTEGER,
     imdb_rating 		NUMERIC(3,1),
-    age_cert 			age_rating,
-    created_at 			TIMESTAMP NOT NULL DEFAULT now()
+    tmdb_id 			INTEGER UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
@@ -156,3 +152,35 @@ CREATE TRIGGER update_reviews_updated_at
     BEFORE UPDATE ON reviews 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- THEATRE AREAS TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS "TheatreAreas" (
+    "PaikkaID"    VARCHAR(10) PRIMARY KEY,  -- Finnkino's area ID
+    "PaikkaNimi"  TEXT NOT NULL             -- Name of the theatre area
+);
+
+-- Populate TheatreAreas with initial data
+INSERT INTO "TheatreAreas" ("PaikkaID", "PaikkaNimi") VALUES
+    ('1002', 'Helsinki: ITIS'),
+    ('1012', 'Helsinki'),
+    ('1013', 'Vantaa: FLAMINGO'),
+    ('1014', 'Espoo'),
+    ('1015', 'Jyväskylä: FANTASIA'),
+    ('1016', 'Kuopio: SCALA'),
+    ('1017', 'Lahti: KUVAPALATSI'),
+    ('1018', 'Oulu: PLAZA'),
+    ('1021', 'Tampere'),
+    ('1022', 'Turku: KINOPALATSI'),
+    ('1029', 'Pääkaupunkiseutu'),
+    ('1032', 'Helsinki: MAXIM'),
+    ('1033', 'Helsinki: TENNISPALATSI'),
+    ('1034', 'Tampere: CINE ATLAS'),
+    ('1035', 'Tampere: PLEVNA'),
+    ('1041', 'Lappeenranta: STRAND'),
+    ('1045', 'Helsinki: KINOPALATSI'),
+    ('1046', 'Raisio: LUXE MYLLY'),
+    ('1047', 'Turku ja Raisio')
+ON CONFLICT ("PaikkaID") DO UPDATE SET
+    "PaikkaNimi" = EXCLUDED."PaikkaNimi";

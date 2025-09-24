@@ -156,7 +156,8 @@ class TMDBService {
       originalTitle: movie.original_title,
       releaseDate: movie.release_date,
       overview: movie.overview,
-      posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
+      posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+      voteAverage: movie.vote_average
     }));
   }
 
@@ -209,6 +210,7 @@ class TMDBService {
       budget: movie.budget,
       revenue: movie.revenue,
       popularity: movie.popularity,
+      voteAverage: movie.vote_average,
       // Cast and crew information
       cast: movie.credits?.cast?.slice(0, 10).map(actor => ({
         id: actor.id,

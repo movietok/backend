@@ -1,28 +1,22 @@
 import { query } from '../config/database.js';
-// Alustava toteutus. Elovukiva ei vielä tuoda tietokantaan. Mahdollisesti tuodaan vain Finkinon elokuvat, joihin sitten haetaan sisältöä timdb:stä tai muualta.
+
 class Movie {
   constructor(data) {
     this.id = data.id;
-    this.title = data.title;
-    this.description = data.description;
-    this.genre = data.genre;
+    this.original_title = data.original_title;
     this.release_year = data.release_year;
-    this.rating = data.rating;
-    this.director = data.director;
-    this.poster_url = data.poster_url;
-    this.created_by = data.created_by;
-    this.created_at = data.created_at;
-    this.updated_at = data.updated_at;
+    this.imdb_rating = data.imdb_rating;
+    this.tmdb_id = data.tmdb_id;
   }
 
-  // CREATE - Luo uusi elokuva
+  // CREATE - Create a new movie manually (rarely used as movies typically come from TMDB)
   static async create(movieData) {
     try {
-      const { title, description, genre, release_year, rating, director, poster_url, created_by } = movieData;
+      const { original_title, release_year, imdb_rating, tmdb_id } = movieData;
       const result = await query(
-        `INSERT INTO movies (title, description, genre, release_year, rating, director, poster_url, created_by) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [title, description, genre, release_year, rating, director, poster_url, created_by]
+        `INSERT INTO movies (original_title, release_year, imdb_rating, tmdb_id) 
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [original_title, release_year, imdb_rating, tmdb_id]
       );
       return new Movie(result.rows[0]);
     } catch (error) {
@@ -40,7 +34,7 @@ class Movie {
     }
   }
 
-  // READ - Hae kaikki elokuvat
+  // READ - Get all movies with optional filtering
   static async findAll(filters = {}, limit = 50, offset = 0) {
     try {
       let queryText = 'SELECT * FROM movies';
@@ -48,34 +42,16 @@ class Movie {
       let paramCount = 1;
       let conditions = [];
 
-      // Lisää suodattimet
-      if (filters.genre) {
-        conditions.push(`genre ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.genre}%`);
-        paramCount++;
-      }
-
+      // Add filters that match our current schema
       if (filters.release_year) {
         conditions.push(`release_year = $${paramCount}`);
         queryParams.push(filters.release_year);
         paramCount++;
       }
 
-      if (filters.director) {
-        conditions.push(`director ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.director}%`);
-        paramCount++;
-      }
-
-      if (filters.title) {
-        conditions.push(`title ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.title}%`);
-        paramCount++;
-      }
-
-      if (filters.min_rating) {
-        conditions.push(`rating >= $${paramCount}`);
-        queryParams.push(filters.min_rating);
+      if (filters.original_title) {
+        conditions.push(`original_title ILIKE $${paramCount}`);
+        queryParams.push(`%${filters.original_title}%`);
         paramCount++;
       }
 
@@ -83,7 +59,7 @@ class Movie {
         queryText += ` WHERE ${conditions.join(' AND ')}`;
       }
 
-      queryText += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+      queryText += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
       queryParams.push(limit, offset);
 
       const result = await query(queryText, queryParams);
@@ -93,39 +69,13 @@ class Movie {
     }
   }
 
-  // READ - Hae elokuvat genren perusteella
-  static async findByGenre(genre, limit = 50, offset = 0) {
-    try {
-      const result = await query(
-        'SELECT * FROM movies WHERE genre ILIKE $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
-        [`%${genre}%`, limit, offset]
-      );
-      return result.rows.map(row => new Movie(row));
-    } catch (error) {
-      throw new Error(`Error finding movies by genre: ${error.message}`);
-    }
-  }
-
-  // READ - Hae käyttäjän luomat elokuvat
-  static async findByUser(userId, limit = 50, offset = 0) {
-    try {
-      const result = await query(
-        'SELECT * FROM movies WHERE created_by = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
-        [userId, limit, offset]
-      );
-      return result.rows.map(row => new Movie(row));
-    } catch (error) {
-      throw new Error(`Error finding movies by user: ${error.message}`);
-    }
-  }
-
-  // READ - Etsi elokuvia tekstihakulla
+  // READ - Search movies by original title
   static async search(searchTerm, limit = 50, offset = 0) {
     try {
       const result = await query(
         `SELECT * FROM movies 
-         WHERE title ILIKE $1 OR description ILIKE $1 OR director ILIKE $1 OR genre ILIKE $1
-         ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+         WHERE original_title ILIKE $1
+         LIMIT $2 OFFSET $3`,
         [`%${searchTerm}%`, limit, offset]
       );
       return result.rows.map(row => new Movie(row));
@@ -134,10 +84,10 @@ class Movie {
     }
   }
 
-  // UPDATE - Päivitä elokuvan tiedot
+  // UPDATE - Update movie details (mainly for updating IMDb rating)
   static async updateById(id, updateData) {
     try {
-      const allowedFields = ['title', 'description', 'genre', 'release_year', 'rating', 'director', 'poster_url'];
+      const allowedFields = ['original_title', 'release_year', 'imdb_rating'];
       const updates = [];
       const values = [];
       let paramCount = 1;
@@ -156,7 +106,7 @@ class Movie {
 
       values.push(id);
       const result = await query(
-        `UPDATE movies SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount} RETURNING *`,
+        `UPDATE movies SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
         values
       );
 
@@ -166,7 +116,7 @@ class Movie {
     }
   }
 
-  // DELETE - Poista elokuva ID:n perusteella
+  // DELETE - Delete a movie by ID
   static async deleteById(id) {
     try {
       const result = await query('DELETE FROM movies WHERE id = $1 RETURNING *', [id]);
@@ -176,7 +126,7 @@ class Movie {
     }
   }
 
-  // Helper - Laske elokuvien määrä
+  // Helper - Count movies with optional filters
   static async count(filters = {}) {
     try {
       let queryText = 'SELECT COUNT(*) FROM movies';
@@ -184,28 +134,15 @@ class Movie {
       let paramCount = 1;
       let conditions = [];
 
-      // Sama suodatinlogiikka kuin findAll:ssa
-      if (filters.genre) {
-        conditions.push(`genre ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.genre}%`);
-        paramCount++;
-      }
-
       if (filters.release_year) {
         conditions.push(`release_year = $${paramCount}`);
         queryParams.push(filters.release_year);
         paramCount++;
       }
 
-      if (filters.director) {
-        conditions.push(`director ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.director}%`);
-        paramCount++;
-      }
-
-      if (filters.title) {
-        conditions.push(`title ILIKE $${paramCount}`);
-        queryParams.push(`%${filters.title}%`);
+      if (filters.original_title) {
+        conditions.push(`original_title ILIKE $${paramCount}`);
+        queryParams.push(`%${filters.original_title}%`);
         paramCount++;
       }
 
@@ -220,24 +157,18 @@ class Movie {
     }
   }
 
-  // Instance method - Palauta elokuvan julkiset tiedot
+  // Instance method - Return public object
   toPublicObject() {
     return {
       id: this.id,
-      title: this.title,
-      description: this.description,
-      genre: this.genre,
+      original_title: this.original_title,
       release_year: this.release_year,
-      rating: this.rating,
-      director: this.director,
-      poster_url: this.poster_url,
-      created_by: this.created_by,
-      created_at: this.created_at,
-      updated_at: this.updated_at
+      imdb_rating: this.imdb_rating,
+      tmdb_id: this.tmdb_id
     };
   }
 
-  // Instance method - Päivitä tämä elokuva
+  // Instance method - Update this movie
   async update(updateData) {
     const updated = await Movie.updateById(this.id, updateData);
     if (updated) {
@@ -249,6 +180,58 @@ class Movie {
   // Instance method - Poista tämä elokuva
   async delete() {
     return await Movie.deleteById(this.id);
+  }
+
+  // Find movie by TMDB ID
+  static async findByTmdbId(tmdbId) {
+    try {
+      const result = await query('SELECT * FROM movies WHERE tmdb_id = $1', [tmdbId]);
+      return result.rows.length > 0 ? new Movie(result.rows[0]) : null;
+    } catch (error) {
+      throw new Error(`Error finding movie by TMDB ID: ${error.message}`);
+    }
+  }
+
+  // Create or update movie from TMDB data
+  static async createFromTmdb(tmdbData) {
+    try {
+      // First check if movie already exists by TMDB ID
+      const existingMovie = await Movie.findByTmdbId(tmdbData.id);
+      if (existingMovie) {
+        return existingMovie; // Movie already exists, return it
+      }
+
+      // Extract year from release date (YYYY-MM-DD format)
+      const releaseYear = tmdbData.release_date ? parseInt(tmdbData.release_date.split('-')[0]) : null;
+
+      // Log the data that will be saved
+      console.log('TMDB Data to be saved:', {
+        tmdb_id: tmdbData.id,
+        original_title: tmdbData.original_title,
+        release_year: releaseYear,
+        full_tmdb_data: tmdbData // This shows all available TMDB data
+      });
+
+      // Create new movie with TMDB data
+      const result = await query(
+        `INSERT INTO movies (
+          original_title, 
+          tmdb_id, 
+          release_year,
+          imdb_rating
+        ) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [
+          tmdbData.original_title,
+          tmdbData.id,
+          releaseYear,
+          null  // imdb_rating will be null initially, to be filled in later
+        ]
+      );
+
+      return new Movie(result.rows[0]);
+    } catch (error) {
+      throw new Error(`Error creating movie from TMDB data: ${error.message}`);
+    }
   }
 }
 
