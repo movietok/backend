@@ -217,12 +217,12 @@ class Movie {
         `INSERT INTO movies (
           original_title, 
           tmdb_id, 
-          release_year,
+          release_year
         ) VALUES ($1, $2, $3) RETURNING *`,
         [
           tmdbData.originalTitle,
           tmdbData.id,
-          releaseYear,
+          releaseYear
         ]
       );
 
