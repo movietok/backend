@@ -87,6 +87,35 @@ class TMDBService {
   }
 
   /**
+   * Search movies by original title and year
+   * @param {string} originalTitle - The original title to search for
+   * @param {number} year - The release year to filter by
+   * @returns {Promise<Object>} - Search results
+   */
+  async searchByOriginalTitleAndYear(originalTitle, year) {
+    try {
+      // First search with the title
+      const data = await this.fetchTMDBData('/search/movie', {
+        query: originalTitle,
+        primary_release_year: year.toString(),
+        sort_by: 'popularity.desc'
+      });
+
+      // Filter results to only include exact original_title matches
+      const exactMatches = data.results.filter(movie => 
+        movie.original_title.toLowerCase() === originalTitle.toLowerCase()
+      );
+
+      return {
+        results: this.formatMovieList(exactMatches),
+        totalResults: exactMatches.length
+      };
+    } catch (error) {
+      throw new Error(`Failed to search by original title and year: ${error.message}`);
+    }
+  }
+
+  /**
    * Get videos (trailers, teasers, etc.) for a specific movie
    * @param {number} movieId - TMDB movie ID
    * @param {string} language - Language for videos (default: 'en-US')

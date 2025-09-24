@@ -4,7 +4,8 @@ import {
   getMovieDetails, 
   getGenres, 
   getTopPopularMovies,
-  getTopRatedMovies
+  getTopRatedMovies,
+  getMoviesByTitleAndYear
 } from '../controllers/TMDBController.js';
 
 const router = express.Router();
@@ -21,6 +22,9 @@ router.get('/top-popular', getTopPopularMovies);
 
 // Get top rated movies from TMDB
 router.get('/top-rated', getTopRatedMovies);
+
+// Get movies by title & year
+router.get('/title-year', getMoviesByTitleAndYear);
 
 // Get detailed movie information from TMDB (includes trailer)
 router.get('/:id', getMovieDetails);

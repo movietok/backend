@@ -75,4 +75,39 @@ export const getTopRatedMovies = async (req, res) => {
   }
 };
 
+export const getMoviesByTitleAndYear = async (req, res) => {
+  try {
+    const { originalTitle, year } = req.query;
+
+    // Validate required parameters
+    if (!originalTitle || !year) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both originalTitle and year are required as query parameters'
+      });
+    }
+
+    // Validate year format
+    const yearNum = parseInt(year);
+    if (isNaN(yearNum) || yearNum < 1900 || yearNum > new Date().getFullYear()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid year format. Year must be between 1900 and current year'
+      });
+    }
+
+    const results = await TMDBService.searchByOriginalTitleAndYear(originalTitle, yearNum);
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error) {
+    console.error('Error searching movies by original title and year:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 
