@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS group_members (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS movies (
     id 					VARCHAR(255) PRIMARY KEY, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä -Martin
-    original_title 		TEXT, NOT NULL,             -- Koko taulua muutettu, vain oleelliset kentät säilytetty + tmdb_id lisätty -Samu
+    original_title 		TEXT NOT NULL,             -- Koko taulua muutettu, vain oleelliset kentät säilytetty + tmdb_id lisätty -Samu
     release_year 		INTEGER,
     imdb_rating 		NUMERIC(3,1),
     tmdb_id 			INTEGER UNIQUE
