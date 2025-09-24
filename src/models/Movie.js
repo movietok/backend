@@ -202,12 +202,12 @@ class Movie {
       }
 
       // Extract year from release date (YYYY-MM-DD format)
-      const releaseYear = tmdbData.release_date ? parseInt(tmdbData.release_date.split('-')[0]) : null;
+      const releaseYear = tmdbData.releaseDate ? parseInt(tmdbData.releaseDate.split('-')[0]) : null;
 
       // Log the data that will be saved
       console.log('TMDB Data to be saved:', {
         tmdb_id: tmdbData.id,
-        original_title: tmdbData.original_title,
+        original_title: tmdbData.originalTitle,
         release_year: releaseYear,
         full_tmdb_data: tmdbData // This shows all available TMDB data
       });
@@ -218,13 +218,11 @@ class Movie {
           original_title, 
           tmdb_id, 
           release_year,
-          imdb_rating
-        ) VALUES ($1, $2, $3, $4) RETURNING *`,
+        ) VALUES ($1, $2, $3) RETURNING *`,
         [
-          tmdbData.original_title,
+          tmdbData.originalTitle,
           tmdbData.id,
           releaseYear,
-          null  // imdb_rating will be null initially, to be filled in later
         ]
       );
 
