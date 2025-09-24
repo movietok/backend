@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS movies (
 
 CREATE TABLE IF NOT EXISTS reviews (
     id         SERIAL PRIMARY KEY,
-    movie_id   VARCHAR(255) NOT NULL, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä - Martin
+    movie_id   INT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating     INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- Muutetaanko 0-5 
     content    TEXT, 
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS comments (
     id         SERIAL PRIMARY KEY,
     review_id  INT REFERENCES reviews(id) ON DELETE CASCADE,
-    movie_id   VARCHAR(255) REFERENCES movies(id) ON DELETE CASCADE,
+    movie_id   INT REFERENCES movies(id) ON DELETE CASCADE,
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
     content    TEXT NOT NULL, 
     created_at TIMESTAMP NOT NULL DEFAULT now(),
