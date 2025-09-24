@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS group_members (
 -- MOVIES + REVIEWS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS movies (
-    id 					SERIAL PRIMARY KEY,
-    original_title 		TEXT NOT NULL,             -- Only essential fields kept + tmdb_id added
+    id 					VARCHAR(255) PRIMARY KEY, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä -Martin
+    original_title 		TEXT, NOT NULL,             -- Koko taulua muutettu, vain oleelliset kentät säilytetty + tmdb_id lisätty -Samu
     release_year 		INTEGER,
     imdb_rating 		NUMERIC(3,1),
     tmdb_id 			INTEGER UNIQUE
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS movies (
 
 CREATE TABLE IF NOT EXISTS reviews (
     id         SERIAL PRIMARY KEY,
-    movie_id   INT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    movie_id   VARCHAR(255) NOT NULL, -- Muutetiin Varchariksi, että vastaisi Finkkinon Apia, ehkä muutetaan vielä - Martin
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating     INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- Muutetaanko 0-5 
     content    TEXT, 
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS comments (
     id         SERIAL PRIMARY KEY,
     review_id  INT REFERENCES reviews(id) ON DELETE CASCADE,
-    movie_id   INT REFERENCES movies(id) ON DELETE CASCADE,
+    movie_id   VARCHAR(255) REFERENCES movies(id) ON DELETE CASCADE,
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
     content    TEXT NOT NULL, 
     created_at TIMESTAMP NOT NULL DEFAULT now(),
