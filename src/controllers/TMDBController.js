@@ -1,4 +1,5 @@
 import TMDBService from '../services/TMDBService.js';
+import Movie from '../models/Movie.js';
 
 export const searchMovies = async (req, res) => {
   try {
@@ -25,6 +26,15 @@ export const getMovieDetails = async (req, res) => {
     }
 
     const movie = await TMDBService.getMovieById(id);
+
+    // Save basic movie details to our database
+    try {
+      await Movie.createFromTmdb(movie);
+    } catch (dbError) {
+      console.error('Error saving movie to database:', dbError);
+      // Don't fail the request if database save fails
+    }
+
     res.json(movie);
   } catch (error) {
     console.error('Error getting movie details:', error);
