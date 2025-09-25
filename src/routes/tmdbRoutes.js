@@ -3,9 +3,10 @@ import {
   searchMovies, 
   getMovieDetails, 
   getMoviesByTitleAndYear,
-  discoverMovies,
-  getLocalGenres
+  discoverMovies
 } from '../controllers/TMDBController.js';
+
+import { getLocalGenres } from '../controllers/GenresController.js';
 
 const router = express.Router();
 
