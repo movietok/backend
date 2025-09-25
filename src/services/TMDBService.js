@@ -116,63 +116,65 @@ class TMDBService {
   }
 
   /**
+   * Discover movies with various filters and sorting options
+   * @param {Object} options - Discovery options
+   * @param {string} options.sortBy - Sort method (default: 'popularity.desc')
+   * @param {number[]} [options.withGenres] - Array of genre IDs to filter by
+   * @param {number} [options.page=1] - Page number
+   * @param {string} [options.language='en-US'] - Language code
+   * @returns {Promise<Object>} - Discovered movies
+   */
+  async discoverMovies({
+    sortBy = 'popularity.desc',
+    withGenres = [],
+    page = 1,
+    language = 'en-US'
+  } = {}) {
+    try {
+      // Validate sort_by parameter
+      const validSortOptions = [
+        'original_title.asc', 'original_title.desc',
+        'popularity.asc', 'popularity.desc',
+        'revenue.asc', 'revenue.desc',
+        'primary_release_date.asc', 'primary_release_date.desc',
+        'title.asc', 'title.desc',
+        'vote_average.asc', 'vote_average.desc',
+        'vote_count.asc', 'vote_count.desc'
+      ];
+
+      if (!validSortOptions.includes(sortBy)) {
+        throw new Error('Invalid sort_by parameter');
+      }
+
+      const params = {
+        language,
+        page: page.toString(),
+        sort_by: sortBy
+      };
+
+      // Add genre filter if genres are provided
+      if (withGenres && withGenres.length > 0) {
+        params.with_genres = withGenres.join(',');
+      }
+
+      const data = await this.fetchTMDBData('/discover/movie', params);
+
+      return {
+        results: this.formatMovieList(data.results),
+        page: data.page,
+        totalPages: data.total_pages,
+        totalResults: data.total_results
+      };
+    } catch (error) {
+      throw new Error(`Failed to discover movies: ${error.message}`);
+    }
+  }
+
+  /**
    * Get videos (trailers, teasers, etc.) for a specific movie
    * @param {number} movieId - TMDB movie ID
    * @param {string} language - Language for videos (default: 'en-US')
    */
-
-
-  /**
-   * Get list of movie genres from TMDB
-   * @param {string} language - Language code (default: 'en')
-   */
-  async getGenres(language = 'en') {
-    try {
-      const data = await this.fetchTMDBData('/genre/movie/list', {
-        language: language
-      });
-      return data.genres;
-    } catch (error) {
-      throw new Error(`Failed to fetch genres: ${error.message}`);
-    }
-  }
-
-  /**'
-   * Get top 10 popular movies from TMDB
-   * @param {number} count - Number of top popular movies to retrieve (default: 10)
-   * @param {string} language - Language code (default: 'en-US')
-   */
-  async getTopPopularMovies(count = 10, language = 'en-US') {
-    try {
-      // Use /movie/popular endpoint
-      const data = await this.fetchTMDBData('/movie/popular', {
-        language: language || 'en-US',
-        page: 1
-      });
-      return this.formatMovieList((data.results || []).slice(0, count));
-    } catch (error) {
-      throw new Error(`Failed to fetch top popular movies: ${error.message}`); 
-    }
-  }
-
-  /**
-   * Get top rated movies from TMDB
-   * @param {number} count - Number of movies to retrieve (default: 10)
-   * @param {string} language - Language code (default: 'en-US')
-   */
-  async getTopRatedMovies(count = 10, language = 'en-US') {
-    try {
-      const data = await this.fetchTMDBData('/movie/top_rated', {
-        language: language || 'en-US',
-        page: 1
-      });
-      return this.formatMovieList((data.results || []).slice(0, count));
-    } catch (error) {
-      throw new Error(`Failed to fetch top rated movies: ${error.message}`);
-    }
-  }
-
-
 
   /**
    * Format basic movie data for list views

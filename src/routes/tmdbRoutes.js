@@ -2,10 +2,10 @@ import express from 'express';
 import { 
   searchMovies, 
   getMovieDetails, 
-  getGenres, 
-  getTopPopularMovies,
-  getTopRatedMovies,
-  getMoviesByTitleAndYear
+  getGenres,
+  getMoviesByTitleAndYear,
+  discoverMovies,
+  getLocalGenres
 } from '../controllers/TMDBController.js';
 
 const router = express.Router();
@@ -13,18 +13,16 @@ const router = express.Router();
 // Search movies from TMDB
 router.get('/search', searchMovies);
 
-
-// Get Genres list from TMDB
-router.get('/genres', getGenres);
-
-// Get top 10 popular movies from TMDB
-router.get('/top-popular', getTopPopularMovies);
-
-// Get top rated movies from TMDB
-router.get('/top-rated', getTopRatedMovies);
+// Get Genres from local database
+router.get('/genres', getLocalGenres);
 
 // Get movies by title & year
 router.get('/title-year', getMoviesByTitleAndYear);
+
+// Discover movies (supports both GET and POST)
+router.route('/discover')
+  .get(discoverMovies)
+  .post(discoverMovies);
 
 // Get detailed movie information from TMDB (includes trailer)
 router.get('/:id', getMovieDetails);
