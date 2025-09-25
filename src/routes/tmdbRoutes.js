@@ -2,7 +2,6 @@ import express from 'express';
 import { 
   searchMovies, 
   getMovieDetails, 
-  getGenres,
   getMoviesByTitleAndYear,
   discoverMovies,
   getLocalGenres
