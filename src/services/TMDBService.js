@@ -176,23 +176,6 @@ class TMDBService {
    * @param {string} language - Language for videos (default: 'en-US')
    */
 
-
-  /**
-   * Get list of movie genres from TMDB
-   * @param {string} language - Language code (default: 'en')
-   */
-  async getGenres(language = 'en') {
-    try {
-      const data = await this.fetchTMDBData('/genre/movie/list', {
-        language: language
-      });
-      return data.genres;
-    } catch (error) {
-      throw new Error(`Failed to fetch genres: ${error.message}`);
-    }
-  }
-
-
   /**
    * Format basic movie data for list views
    * @private

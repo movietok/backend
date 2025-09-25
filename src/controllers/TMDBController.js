@@ -1,6 +1,7 @@
 import TMDBService from '../services/TMDBService.js';
 import Movie from '../models/Movie.js';
 
+
 export const searchMovies = async (req, res) => {
   try {
     const { query, page } = req.query;
@@ -38,17 +39,6 @@ export const getMovieDetails = async (req, res) => {
     res.json(movie);
   } catch (error) {
     console.error('Error getting movie details:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const getGenres = async (req, res) => {
-  try {
-    const { language } = req.query;
-    const genres = await TMDBService.getGenres(language || 'en');
-    res.json(genres);
-  } catch (error) {
-    console.error('Error fetching genres:', error);
     res.status(500).json({ error: error.message });
   }
 };

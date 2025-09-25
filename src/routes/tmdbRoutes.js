@@ -2,11 +2,10 @@ import express from 'express';
 import { 
   searchMovies, 
   getMovieDetails, 
-  getGenres, 
-  getTopPopularMovies,
-  getTopRatedMovies,
+  getGenres,
   getMoviesByTitleAndYear,
-  discoverMovies
+  discoverMovies,
+  getLocalGenres
 } from '../controllers/TMDBController.js';
 
 const router = express.Router();
@@ -14,9 +13,8 @@ const router = express.Router();
 // Search movies from TMDB
 router.get('/search', searchMovies);
 
-
-// Get Genres list from TMDB
-router.get('/genres', getGenres);
+// Get Genres from local database
+router.get('/genres', getLocalGenres);
 
 // Get movies by title & year
 router.get('/title-year', getMoviesByTitleAndYear);
