@@ -7,7 +7,7 @@ class Genre {
    */
   static async getAllGenres() {
     try {
-      const result = await query('SELECT id, name FROM "Genres" ORDER BY id ASC');
+      const result = await query('SELECT id, name FROM "genres" ORDER BY id ASC');
       return result.rows;
     } catch (error) {
       throw new Error(`Failed to fetch genres: ${error.message}`);
