@@ -54,6 +54,11 @@ export const discoverMovies = async (req, res) => {
       language: req.query.language || 'en-US'
     };
 
+    // Support GET with_genres
+    if (req.query.with_genres) {
+  options.withGenres = req.query.with_genres.split(",").map(Number);
+}
+
     // If it's a POST request and has genre data, add it to the options
     if (method === 'POST' && req.body.genres && Array.isArray(req.body.genres)) {
       options.withGenres = req.body.genres;
