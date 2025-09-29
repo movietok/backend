@@ -15,9 +15,9 @@ router.use(authenticateToken);
 router.post('/', createGroup);
 
 // Get group details
-router.get('/:gId', getGroupDetails);
+router.get('/:gID', getGroupDetails);
 
 // Delete a group
-router.delete('/:gId', deleteGroup);
+router.delete('/:gID', deleteGroup);
 
 export default router;
