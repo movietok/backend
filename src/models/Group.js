@@ -34,6 +34,11 @@ class Group {
    */
   static async getById(gID) {
     try {
+      // Debug logging for input value
+      console.log('=== Group.getById Debug ===');
+      console.log('Raw gID received:', gID);
+      console.log('Type of gID:', typeof gID);
+      
       const result = await query(
         `SELECT 
             g.id,
