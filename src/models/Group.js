@@ -257,7 +257,7 @@ class Group {
 
         // Check if user is already a member
         const memberCheck = await query(
-          'SELECT id FROM group_members WHERE group_id = $1 AND user_id = $2',
+          'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
           [groupId, userId]
         );
 
