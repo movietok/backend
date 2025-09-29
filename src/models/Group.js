@@ -269,7 +269,7 @@ class Group {
         const result = await query(
           `INSERT INTO group_members (group_id, user_id, role, joined_at)
            VALUES ($1, $2, 'member', CURRENT_TIMESTAMP)
-           RETURNING id`,
+           RETURNING user_id`,
           [groupId, userId]
         );
 
@@ -283,8 +283,8 @@ class Group {
             gm.role
           FROM group_members gm
           JOIN users u ON gm.user_id = u.id
-          WHERE gm.id = $1`,
-          [result.rows[0].id]
+          WHERE gm.user_id = $1`,
+          [result.rows[0].user_id]
         );
 
         await query('COMMIT');
