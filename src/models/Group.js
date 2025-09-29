@@ -154,6 +154,48 @@ class Group {
       throw new Error(`Failed to search groups: ${error.message}`);
     }
   }
+
+  /**
+   * Get all members of a group
+   * @param {number} groupId Group ID
+   * @returns {Promise<Array>} Array of group members with their details
+   */
+  static async getMembers(groupId) {
+    try {
+      // First check if the group exists
+      const groupCheck = await query(
+        'SELECT id FROM groups WHERE id = $1',
+        [groupId]
+      );
+
+      if (groupCheck.rows.length === 0) {
+        console.error(`Get members failed: Group with ID ${groupId} not found`);
+        throw new Error('Group not found');
+      }
+
+      const result = await query(
+        `SELECT 
+          u.id,
+          u.username,
+          u.email,
+          gm.joined_at,
+          gm.role
+        FROM group_members gm
+        JOIN users u ON gm.user_id = u.id
+        WHERE gm.group_id = $1
+        ORDER BY gm.joined_at DESC`,
+        [groupId]
+      );
+
+      return result.rows;
+    } catch (error) {
+      console.error(`Get members error details:`, {
+        groupId,
+        error: error.message
+      });
+      throw new Error(`Failed to get group members: ${error.message}`);
+    }
+  }
 }
 
 export default Group;

@@ -4,7 +4,8 @@ import {
   createGroup,
   getGroupDetails,
   deleteGroup,
-  searchGroups
+  searchGroups,
+  getGroupMembers
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
@@ -20,6 +21,9 @@ router.post('/', createGroup);
 
 // Get group details
 router.get('/:gID', getGroupDetails);
+
+// Get group members
+router.get('/:gID/members', getGroupMembers);
 
 // Delete a group
 router.delete('/:gID', deleteGroup);
