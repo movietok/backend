@@ -67,28 +67,60 @@ class Group {
    */
   static async getById(gID) {
     try {      
-      const result = await query(
-        `SELECT 
-            g.id,
-            g.name,
-            g.description,
-            g.theme_id,
-            g.visibility,
-            g.poster_url,
-            g.created_at,
-            g.owner_id,
-            u.username AS owner_name
-        FROM groups g
-        JOIN users u ON g.owner_id = u.id
-        WHERE g.id = $1`,
-        [gID]
-      );
+      // Start a transaction to ensure consistent read
+      await query('BEGIN');
 
-      if (result.rows.length === 0) {
-        throw new Error('Group not found');
+      try {
+        // Get group details
+        const groupResult = await query(
+          `SELECT 
+              g.id,
+              g.name,
+              g.description,
+              g.theme_id,
+              g.visibility,
+              g.poster_url,
+              g.created_at,
+              g.owner_id,
+              u.username AS owner_name,
+              COUNT(gm.user_id) AS member_count
+          FROM groups g
+          JOIN users u ON g.owner_id = u.id
+          LEFT JOIN group_members gm ON g.id = gm.group_id
+          WHERE g.id = $1
+          GROUP BY g.id, u.username`,
+          [gID]
+        );
+
+        if (groupResult.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        // Get group members
+        const membersResult = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            u.email,
+            gm.joined_at,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.group_id = $1
+          ORDER BY gm.joined_at DESC`,
+          [gID]
+        );
+
+        // Combine group details with members
+        const group = groupResult.rows[0];
+        group.members = membersResult.rows;
+
+        await query('COMMIT');
+        return group;
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
       }
-
-      return result.rows[0];
     } catch (error) {
       throw new Error(`Failed to get group: ${error.message}`);
     }
@@ -176,47 +208,6 @@ class Group {
     }
   }
 
-  /**
-   * Get all members of a group
-   * @param {number} groupId Group ID
-   * @returns {Promise<Array>} Array of group members with their details
-   */
-  static async getMembers(groupId) {
-    try {
-      // First check if the group exists
-      const groupCheck = await query(
-        'SELECT id FROM groups WHERE id = $1',
-        [groupId]
-      );
-
-      if (groupCheck.rows.length === 0) {
-        console.error(`Get members failed: Group with ID ${groupId} not found`);
-        throw new Error('Group not found');
-      }
-
-      const result = await query(
-        `SELECT 
-          u.id,
-          u.username,
-          u.email,
-          gm.joined_at,
-          gm.role
-        FROM group_members gm
-        JOIN users u ON gm.user_id = u.id
-        WHERE gm.group_id = $1
-        ORDER BY gm.joined_at DESC`,
-        [groupId]
-      );
-
-      return result.rows;
-    } catch (error) {
-      console.error(`Get members error details:`, {
-        groupId,
-        error: error.message
-      });
-      throw new Error(`Failed to get group members: ${error.message}`);
-    }
-  }
 
   /**
    * Add a user to a group
