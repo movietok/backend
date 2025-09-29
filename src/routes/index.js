@@ -3,6 +3,7 @@ import userRoutes from './userRoutes.js';
 import reviewRoutes from './reviewRoutes.js';
 import finnkinoRoutes from './finnkinoRoutes.js';
 import tmdbRoutes from './tmdbRoutes.js';
+import groupRoutes from './groupRoutes.js';
 
 const router = express.Router();
 
@@ -47,11 +48,13 @@ router.use('/api/v1/users', userRoutes);
 router.use('/api/v1/reviews', reviewRoutes);
 router.use('/api/v1/tmdb', tmdbRoutes);
 router.use('/api/v1/finnkino', finnkinoRoutes);
+router.use('/api/v1/groups', groupRoutes);
 
 // Legacy routes (backward compatibility)
 router.use('/api/users', userRoutes);
 router.use('/api/reviews', reviewRoutes);
 router.use('/api/finnkino', finnkinoRoutes);
 router.use('/api/tmdb', tmdbRoutes);
+router.use('/api/groups', groupRoutes);
 
 export default router;
