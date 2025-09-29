@@ -35,11 +35,18 @@ class Group {
   static async getById(gID) {
     try {
       const result = await query(
-        `SELECT id, name, description, visibility, created_at,
-                owner_id, u.username as owner_name
-         FROM groups g
-         JOIN users u ON owner_id = id
-         WHERE id = $1`,
+        `SELECT 
+            g.id,
+            g.name,
+            g.description,
+            g.theme_id,
+            g.visibility,
+            g.created_at,
+            g.owner_id,
+            u.username AS owner_name
+        FROM groups g
+        JOIN users u ON g.owner_id = u.id
+        WHERE g.id = $1`,
         [gID]
       );
 
