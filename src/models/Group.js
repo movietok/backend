@@ -66,12 +66,7 @@ class Group {
    * @returns {Promise<Object>} Group details
    */
   static async getById(gID) {
-    try {
-      // Debug logging for input value
-      console.log('=== Group.getById Debug ===');
-      console.log('Raw gID received:', gID);
-      console.log('Type of gID:', typeof gID);
-      
+    try {      
       const result = await query(
         `SELECT 
             g.id,
@@ -79,7 +74,6 @@ class Group {
             g.description,
             g.theme_id,
             g.visibility,
-            g.theme_id,
             g.poster_url,
             g.created_at,
             g.owner_id,
@@ -99,6 +93,7 @@ class Group {
       throw new Error(`Failed to get group: ${error.message}`);
     }
   }
+
 
   /**
    * Delete a group
@@ -217,6 +212,96 @@ class Group {
         error: error.message
       });
       throw new Error(`Failed to get group members: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add a user to a group
+   * @param {number} groupId Group ID
+   * @param {number} userId User ID to add
+   * @param {number} addedByUserId ID of the user performing the action (must be group owner)
+   * @param {string} role Role to assign (default: 'member')
+   * @returns {Promise<Object>} Added member details
+   */
+  static async joinGroup(groupId, userId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists and get visibility
+        const groupCheck = await query(
+          'SELECT owner_id, visibility FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        // Check visibility rules
+        const { visibility, owner_id } = groupCheck.rows[0];
+        
+        if (visibility === 'private') {
+          throw new Error('This is a private group. You cannot join directly.');
+        }
+
+        if (visibility === 'closed') {
+          throw new Error('This is a closed group. Contact support for access.');
+        }
+
+        // Prevent owner from re-joining
+        if (userId === owner_id) {
+          throw new Error('You are already the owner of this group');
+        }
+
+        // Check if user is already a member
+        const memberCheck = await query(
+          'SELECT id FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
+        );
+
+        if (memberCheck.rows.length > 0) {
+          throw new Error('You are already a member of this group');
+        }
+
+        // Add user to group as member
+        const result = await query(
+          `INSERT INTO group_members (group_id, user_id, role, joined_at)
+           VALUES ($1, $2, 'member', CURRENT_TIMESTAMP)
+           RETURNING id`,
+          [groupId, userId]
+        );
+
+        // Get member details
+        const memberDetails = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            u.email,
+            gm.joined_at,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.id = $1`,
+          [result.rows[0].id]
+        );
+
+        await query('COMMIT');
+
+        console.log(`User ${userId} joined group ${groupId}`);
+        return memberDetails.rows[0];
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Join group error details:`, {
+        groupId,
+        userId,
+        error: error.message
+      });
+      throw new Error(`Failed to join group: ${error.message}`);
     }
   }
 }

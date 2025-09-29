@@ -1,5 +1,31 @@
 import Group from '../models/Group.js';
 
+export const searchGroups = async (req, res) => {
+  try {
+    const { query, limit } = req.query;
+    
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required'
+      });
+    }
+
+    const groups = await Group.searchByName(query.trim(), parseInt(limit) || 10);
+
+    res.json({
+      success: true,
+      groups
+    });
+  } catch (error) {
+    console.error('Error searching groups:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 export const getGroupMembers = async (req, res) => {
   try {
     const { gID } = req.params;
@@ -40,28 +66,47 @@ export const getGroupMembers = async (req, res) => {
   }
 };
 
-export const searchGroups = async (req, res) => {
+export const joinGroup = async (req, res) => {
   try {
-    const { query, limit } = req.query;
-    
-    if (!query || query.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query is required'
-      });
-    }
+    const { gID } = req.params;
+    const userId = req.user.id; // Use the logged-in user's ID
 
-    const groups = await Group.searchByName(query.trim(), parseInt(limit) || 10);
+    const member = await Group.joinGroup(gID, userId);
 
-    res.json({
+    res.status(201).json({
       success: true,
-      groups
+      message: 'Successfully joined the group',
+      member
     });
   } catch (error) {
-    console.error('Error searching groups:', error);
+    console.error('Error joining group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'You are already a member of this group' || 
+        error.message === 'You are already the owner of this group') {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message.includes('private group') || error.message.includes('closed group')) {
+      return res.status(403).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: error.message
+      error: 'Failed to join group'
     });
   }
 };
