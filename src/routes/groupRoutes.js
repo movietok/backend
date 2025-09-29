@@ -3,13 +3,17 @@ import { authenticateToken } from '../middleware/auth.js';
 import { 
   createGroup,
   getGroupDetails,
-  deleteGroup
+  deleteGroup,
+  searchGroups
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
 
 // All group routes require authentication
 router.use(authenticateToken);
+
+// Search groups
+router.get('/search', searchGroups);
 
 // Create a new group
 router.post('/', createGroup);
