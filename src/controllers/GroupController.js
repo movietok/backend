@@ -1,5 +1,45 @@
 import Group from '../models/Group.js';
 
+export const getGroupMembers = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    
+    // Get the group first to check visibility
+    const group = await Group.getById(gID);
+    
+    // Check if user has access to view members
+    if (group.visibility !== 'public' && (!req.user || (req.user.id !== group.owner_id))) {
+      return res.status(403).json({
+        success: false,
+        error: group.visibility === 'private' ? 
+          'This is a private group. Only the owner can view members.' :
+          'This is a closed group. Contact support to view members.'
+      });
+    }
+
+    const members = await Group.getMembers(gID);
+
+    res.json({
+      success: true,
+      groupName: group.name,
+      memberCount: members.length,
+      members
+    });
+  } catch (error) {
+    console.error('Error getting group members:', error);
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve group members'
+    });
+  }
+};
+
 export const searchGroups = async (req, res) => {
   try {
     const { query, limit } = req.query;
