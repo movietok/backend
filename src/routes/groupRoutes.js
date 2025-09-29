@@ -5,7 +5,6 @@ import {
   getGroupDetails,
   deleteGroup,
   searchGroups,
-  getGroupMembers,
   joinGroup
 } from '../controllers/GroupController.js';
 
@@ -22,9 +21,6 @@ router.post('/', createGroup);
 
 // Get group details
 router.get('/:gID', getGroupDetails);
-
-// Get group members
-router.get('/:gID/members', getGroupMembers);
 
 // Join group
 router.post('/:gID/join', joinGroup);
