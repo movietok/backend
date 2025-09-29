@@ -17,6 +17,16 @@ class Group {
         throw new Error('Invalid visibility value. Must be public, private, or closed');
       }
 
+      // Check if group with same name already exists
+      const existingGroup = await query(
+        'SELECT id FROM groups WHERE LOWER(name) = LOWER($1)',
+        [name]
+      );
+
+      if (existingGroup.rows.length > 0) {
+        throw new Error('A group with this name already exists');
+      }
+
       const result = await query(
         'INSERT INTO groups (name, owner_id, description, visibility) VALUES ($1, $2, $3, $4) RETURNING id, name, owner_id, description, visibility, created_at',
         [name, ownerId, description, visibility]
