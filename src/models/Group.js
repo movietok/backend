@@ -27,11 +27,34 @@ class Group {
         throw new Error('A group with this name already exists');
       }
 
-      const result = await query(
-        'INSERT INTO groups (name, owner_id, description, visibility) VALUES ($1, $2, $3, $4) RETURNING id, name, owner_id, description, visibility, created_at',
-        [name, ownerId, description, visibility]
-      );
-      return result.rows[0];
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Create the group
+        const groupResult = await query(
+          'INSERT INTO groups (name, owner_id, description, visibility) VALUES ($1, $2, $3, $4) RETURNING id, name, owner_id, description, visibility, created_at',
+          [name, ownerId, description, visibility]
+        );
+
+        const group = groupResult.rows[0];
+
+        // Add the owner to group_members
+        await query(
+          'INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
+          [group.id, ownerId, 'owner']
+        );
+
+        // Commit the transaction
+        await query('COMMIT');
+
+        console.log(`Created group ${group.id} and added owner ${ownerId} as member`);
+        return group;
+      } catch (error) {
+        // Rollback in case of error
+        await query('ROLLBACK');
+        throw error;
+      }
     } catch (error) {
       throw new Error(`Failed to create group: ${error.message}`);
     }
