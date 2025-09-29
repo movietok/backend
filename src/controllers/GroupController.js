@@ -1,5 +1,31 @@
 import Group from '../models/Group.js';
 
+export const searchGroups = async (req, res) => {
+  try {
+    const { query, limit } = req.query;
+    
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required'
+      });
+    }
+
+    const groups = await Group.searchByName(query.trim(), parseInt(limit) || 10);
+
+    res.json({
+      success: true,
+      groups
+    });
+  } catch (error) {
+    console.error('Error searching groups:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 export const createGroup = async (req, res) => {
   try {
     const { name, description, visibility } = req.body;

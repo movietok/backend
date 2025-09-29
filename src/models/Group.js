@@ -56,6 +56,8 @@ class Group {
             g.description,
             g.theme_id,
             g.visibility,
+            g.theme_id,
+            g.poster_url,
             g.created_at,
             g.owner_id,
             u.username AS owner_name
@@ -91,10 +93,45 @@ class Group {
       if (result.rows.length === 0) {
         throw new Error('User is not the owner');
       }
-
       return true;
     } catch (error) {
       throw new Error(`Failed to delete group: ${error.message}`);
+    }
+  }
+
+  /**
+   * Search for groups by name
+   * @param {string} searchQuery Search query
+   * @param {number} limit Maximum number of results to return
+   * @returns {Promise<Array>} Array of matching groups
+   */
+  static async searchByName(searchQuery, limit = 20) {
+    try {
+      const result = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.theme_id,
+          g.poster_url,
+          g.created_at,
+          g.owner_id,
+          u.username AS owner_name,
+          similarity(LOWER(g.name), LOWER($1)) AS name_similarity
+        FROM groups g
+        JOIN users u ON g.owner_id = u.id
+        WHERE 
+          (g.name ILIKE $2 OR similarity(LOWER(g.name), LOWER($1)) > 0.3)
+          AND g.visibility = 'public'
+        ORDER BY name_similarity DESC
+        LIMIT $3`,
+        [searchQuery, `%${searchQuery}%`, limit]
+      );
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to search groups: ${error.message}`);
     }
   }
 }
