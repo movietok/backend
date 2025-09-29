@@ -156,12 +156,15 @@ class Group {
           g.created_at,
           g.owner_id,
           u.username AS owner_name,
+          COUNT(gm.user_id) AS member_count,
           similarity(LOWER(g.name), LOWER($1)) AS name_similarity
         FROM groups g
         JOIN users u ON g.owner_id = u.id
+        LEFT JOIN group_members gm ON g.id = gm.group_id
         WHERE 
           (g.name ILIKE $2 OR similarity(LOWER(g.name), LOWER($1)) > 0.3)
           AND g.visibility = 'public'
+        GROUP BY g.id, u.username
         ORDER BY name_similarity DESC
         LIMIT $3`,
         [searchQuery, `%${searchQuery}%`, limit]
