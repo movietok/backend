@@ -121,15 +121,25 @@ export const deleteGroup = async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting group:', error);
-    if (error.message.includes('not found') || error.message.includes('not the owner')) {
+    
+    // Handle specific error cases with appropriate status codes
+    if (error.message === 'Group not found') {
       return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Group not found'
       });
     }
+    
+    if (error.message === 'User is not the owner of this group') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to delete this group'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: error.message
+      error: 'An error occurred while deleting the group'
     });
   }
 };

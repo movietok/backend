@@ -85,16 +85,36 @@ class Group {
    */
   static async delete(gID, ownerId) {
     try {
+      // First check if the group exists
+      const groupCheck = await query(
+        'SELECT id, owner_id FROM groups WHERE id = $1',
+        [gID]
+      );
+
+      if (groupCheck.rows.length === 0) {
+        console.error(`Delete group failed: Group with ID ${gID} not found`);
+        throw new Error('Group not found');
+      }
+
+      // If group exists, check ownership and delete
+      if (groupCheck.rows[0].owner_id !== ownerId) {
+        console.error(`Delete group failed: User ${ownerId} is not the owner of group ${gID}`);
+        throw new Error('User is not the owner of this group');
+      }
+
       const result = await query(
         'DELETE FROM groups WHERE id = $1 AND owner_id = $2 RETURNING id',
         [gID, ownerId]
       );
 
-      if (result.rows.length === 0) {
-        throw new Error('User is not the owner');
-      }
+      console.log(`Group ${gID} successfully deleted by user ${ownerId}`);
       return true;
     } catch (error) {
+      console.error(`Delete group error details:`, {
+        groupId: gID,
+        userId: ownerId,
+        error: error.message
+      });
       throw new Error(`Failed to delete group: ${error.message}`);
     }
   }
