@@ -263,15 +263,11 @@ export const addMemberToGroup = async (req, res) => {
   try {
     const { gID } = req.params;
     
-    // Debug logging
-    console.log('Request body:', req.body);
-    console.log('Content-Type:', req.get('Content-Type'));
-    
     // Check if req.body exists
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Request body is required. Make sure Content-Type is application/json'
+        error: 'Request body is required. Make sure Content-Type is application/json and body format is raw JSON'
       });
     }
     
@@ -454,6 +450,23 @@ export const updateGroupDetails = async (req, res) => {
         success: false,
         error: 'Visibility must be public, private, or closed'
       });
+    }
+
+    // Validate and parse tags if provided
+    if (updates.tags !== undefined) {
+      if (Array.isArray(updates.tags)) {
+        updates.tags = updates.tags.map(tag => parseInt(tag)).filter(tag => !isNaN(tag) && tag > 0);
+      } else if (typeof updates.tags === 'string') {
+        // Handle comma-separated string
+        updates.tags = updates.tags.split(',')
+          .map(tag => parseInt(tag.trim()))
+          .filter(tag => !isNaN(tag) && tag > 0);
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Tags must be an array of numbers or comma-separated string'
+        });
+      }
     }
 
     if (updates.theme_id !== undefined && updates.theme_id !== null) {

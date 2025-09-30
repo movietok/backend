@@ -686,6 +686,7 @@ class Group {
    * @param {number} updates.theme_id New theme ID (optional)
    * @param {string} updates.visibility New visibility (optional)
    * @param {string} updates.poster_url New poster URL (optional)
+   * @param {Array<number>} updates.tags Array of genre IDs to replace current tags (optional)
    * @returns {Promise<Object>} Updated group details
    */
   static async updateDetails(gID, ownerId, updates) {
@@ -714,7 +715,7 @@ class Group {
         }
 
         // Validate allowed fields
-        const allowedFields = ['name', 'description', 'theme_id', 'visibility', 'poster_url'];
+        const allowedFields = ['name', 'description', 'theme_id', 'visibility', 'poster_url', 'tags'];
         const updateFields = Object.keys(updates);
         const invalidFields = updateFields.filter(field => !allowedFields.includes(field));
         
@@ -729,6 +730,20 @@ class Group {
 
         if (updates.theme_id !== undefined && updates.theme_id !== null && isNaN(parseInt(updates.theme_id))) {
           throw new Error('Theme ID must be a valid number or null');
+        }
+
+        // Validate tags if provided
+        if (updates.tags !== undefined) {
+          if (!Array.isArray(updates.tags)) {
+            throw new Error('Tags must be an array of numbers');
+          }
+          // Ensure all tags are valid numbers
+          const validTags = updates.tags.filter(tag => Number.isInteger(tag) && tag > 0);
+          if (validTags.length !== updates.tags.length) {
+            throw new Error('All tags must be valid positive integers');
+          }
+          // Remove duplicates
+          updates.tags = [...new Set(validTags)];
         }
 
         // Check for duplicate group name if name is being updated
@@ -778,9 +793,6 @@ class Group {
           paramCount++;
         }
 
-        // Add updated_at timestamp
-        setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-
         // Add WHERE clause parameters
         values.push(gID, ownerId);
         const whereClause = `WHERE id = $${paramCount} AND owner_id = $${paramCount + 1}`;
@@ -790,7 +802,7 @@ class Group {
           UPDATE groups 
           SET ${setClause.join(', ')} 
           ${whereClause}
-          RETURNING id, name, description, theme_id, visibility, poster_url, updated_at, created_at, owner_id
+          RETURNING id, name, description, theme_id, visibility, poster_url, created_at, owner_id
         `;
 
         const result = await query(updateQuery, values);
@@ -807,6 +819,28 @@ class Group {
 
         const updatedGroup = result.rows[0];
         updatedGroup.owner_name = ownerInfo.rows[0]?.username;
+
+        // Update tags if provided
+        if (updates.tags !== undefined) {
+          // First, delete all existing tags for this group
+          await query(
+            'DELETE FROM tags WHERE group_id = $1',
+            [gID]
+          );
+
+          // Then add the new tags
+          if (updates.tags.length > 0) {
+            for (const genreId of updates.tags) {
+              await query(
+                'INSERT INTO tags (group_id, genre_id) VALUES ($1, $2)',
+                [gID, genreId]
+              );
+            }
+            console.log(`Updated tags for group ${gID}: ${updates.tags.join(', ')}`);
+          } else {
+            console.log(`Removed all tags from group ${gID}`);
+          }
+        }
 
         await query('COMMIT');
 
