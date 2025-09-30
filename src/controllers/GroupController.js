@@ -159,11 +159,15 @@ export const deleteGroup = async (req, res) => {
     const { gID } = req.params;
     const userId = req.user.id; // Assuming user info is set by auth middleware
 
-    await Group.delete(gID, userId);
+    const deletionResult = await Group.delete(gID, userId);
 
     res.json({
       success: true,
-      message: 'Group deleted successfully'
+      message: 'Group deleted successfully',
+      details: {
+        deletedTags: deletionResult.deletedTags,
+        deletedMembers: deletionResult.deletedMembers
+      }
     });
   } catch (error) {
     console.error('Error deleting group:', error);

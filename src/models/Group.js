@@ -135,30 +135,66 @@ class Group {
    */
   static async delete(gID, ownerId) {
     try {
-      // First check if the group exists
-      const groupCheck = await query(
-        'SELECT id, owner_id FROM groups WHERE id = $1',
-        [gID]
-      );
+      // Start a transaction
+      await query('BEGIN');
 
-      if (groupCheck.rows.length === 0) {
-        console.error(`Delete group failed: Group with ID ${gID} not found`);
-        throw new Error('Group not found');
+      try {
+        // First check if the group exists
+        const groupCheck = await query(
+          'SELECT id, owner_id FROM groups WHERE id = $1',
+          [gID]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          console.error(`Delete group failed: Group with ID ${gID} not found`);
+          throw new Error('Group not found');
+        }
+
+        // If group exists, check ownership
+        if (groupCheck.rows[0].owner_id !== ownerId) {
+          console.error(`Delete group failed: User ${ownerId} is not the owner of group ${gID}`);
+          throw new Error('User is not the owner of this group');
+        }
+
+        // Delete related records in the correct order
+        
+        // 1. Delete tags associated with the group
+        const deletedTags = await query(
+          'DELETE FROM tags WHERE group_id = $1 RETURNING genre_id',
+          [gID]
+        );
+
+        // 2. Delete group members
+        const deletedMembers = await query(
+          'DELETE FROM group_members WHERE group_id = $1 RETURNING user_id, role',
+          [gID]
+        );
+
+        // 3. Finally delete the group itself
+        const result = await query(
+          'DELETE FROM groups WHERE id = $1 AND owner_id = $2 RETURNING id',
+          [gID, ownerId]
+        );
+
+        // Commit the transaction
+        await query('COMMIT');
+
+        console.log(`Group ${gID} successfully deleted by user ${ownerId}:`, {
+          deletedTags: deletedTags.rows.length,
+          deletedMembers: deletedMembers.rows.length,
+          deletedGroup: result.rows.length > 0
+        });
+
+        return {
+          success: true,
+          deletedTags: deletedTags.rows.length,
+          deletedMembers: deletedMembers.rows.length
+        };
+      } catch (error) {
+        // Rollback in case of error
+        await query('ROLLBACK');
+        throw error;
       }
-
-      // If group exists, check ownership and delete
-      if (groupCheck.rows[0].owner_id !== ownerId) {
-        console.error(`Delete group failed: User ${ownerId} is not the owner of group ${gID}`);
-        throw new Error('User is not the owner of this group');
-      }
-
-      const result = await query(
-        'DELETE FROM groups WHERE id = $1 AND owner_id = $2 RETURNING id',
-        [gID, ownerId]
-      );
-
-      console.log(`Group ${gID} successfully deleted by user ${ownerId}`);
-      return true;
     } catch (error) {
       console.error(`Delete group error details:`, {
         groupId: gID,
