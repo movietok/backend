@@ -8,9 +8,10 @@ class Group {
    * @param {string} groupData.ownerId Owner's user ID
    * @param {string} groupData.description Group description
    * @param {string} groupData.visibility Group visibility ('public', 'private', or 'closed')
+   * @param {string} groupData.poster_url Group poster URL (optional)
    * @returns {Promise<Object>} Created group
    */
-  static async create({ name, ownerId, description, visibility = 'public' }) {
+  static async create({ name, ownerId, description, visibility = 'public', poster_url }) {
     try {
       // Validate visibility
       if (!['public', 'private', 'closed'].includes(visibility)) {
@@ -33,8 +34,8 @@ class Group {
       try {
         // Create the group
         const groupResult = await query(
-          'INSERT INTO groups (name, owner_id, description, visibility) VALUES ($1, $2, $3, $4) RETURNING id, name, owner_id, description, visibility, created_at',
-          [name, ownerId, description, visibility]
+          'INSERT INTO groups (name, owner_id, description, visibility, poster_url) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, owner_id, description, visibility, poster_url, created_at',
+          [name, ownerId, description, visibility, poster_url]
         );
 
         const group = groupResult.rows[0];

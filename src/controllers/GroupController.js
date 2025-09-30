@@ -74,7 +74,7 @@ export const joinGroup = async (req, res) => {
 
 export const createGroup = async (req, res) => {
   try {
-    const { name, description, visibility } = req.body;
+    const { name, description, visibility, poster_url } = req.body;
     const ownerId = req.user.id; // Assuming user info is set by auth middleware
 
     // Validate required fields
@@ -97,7 +97,8 @@ export const createGroup = async (req, res) => {
       name,
       ownerId,
       description: description || '',
-      visibility: visibility || 'public'
+      visibility: visibility || 'public',
+      poster_url: poster_url || null
     });
 
     res.status(201).json({
