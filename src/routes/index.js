@@ -30,6 +30,7 @@ router.get('/api/health', async (req, res) => {
         port: process.env.DB_PORT || 5432
       },
       version: process.env.npm_package_version || '1.0.0',
+      commit: process.env.GITHUB_SHA?.substring(0, 8) || process.env.COMMIT_SHA || 'unknown',
       nodeVersion: process.version
     };
 
