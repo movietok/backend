@@ -74,7 +74,7 @@ export const joinGroup = async (req, res) => {
 
 export const createGroup = async (req, res) => {
   try {
-    const { name, description, visibility, poster_url } = req.body;
+    const { name, description, visibility, poster_url, tags } = req.body;
     const ownerId = req.user.id; // Assuming user info is set by auth middleware
 
     // Validate required fields
@@ -93,12 +93,31 @@ export const createGroup = async (req, res) => {
       });
     }
 
+    // Validate and parse tags if provided
+    let parsedTags = [];
+    if (tags) {
+      if (Array.isArray(tags)) {
+        parsedTags = tags.map(tag => parseInt(tag)).filter(tag => !isNaN(tag) && tag > 0);
+      } else if (typeof tags === 'string') {
+        // Handle comma-separated string
+        parsedTags = tags.split(',')
+          .map(tag => parseInt(tag.trim()))
+          .filter(tag => !isNaN(tag) && tag > 0);
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Tags must be an array of numbers or comma-separated string'
+        });
+      }
+    }
+
     const group = await Group.create({
       name,
       ownerId,
       description: description || '',
       visibility: visibility || 'public',
-      poster_url: poster_url || null
+      poster_url: poster_url || null,
+      tags: parsedTags
     });
 
     res.status(201).json({
