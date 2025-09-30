@@ -9,13 +9,25 @@ class Group {
    * @param {string} groupData.description Group description
    * @param {string} groupData.visibility Group visibility ('public', 'private', or 'closed')
    * @param {string} groupData.poster_url Group poster URL (optional)
+   * @param {Array<number>} groupData.tags Array of genre IDs to tag the group with (optional)
    * @returns {Promise<Object>} Created group
    */
-  static async create({ name, ownerId, description, visibility = 'public', poster_url }) {
+  static async create({ name, ownerId, description, visibility = 'public', poster_url, tags = [] }) {
     try {
       // Validate visibility
       if (!['public', 'private', 'closed'].includes(visibility)) {
         throw new Error('Invalid visibility value. Must be public, private, or closed');
+      }
+
+      // Validate tags if provided
+      if (tags && tags.length > 0) {
+        // Ensure all tags are valid numbers
+        const validTags = tags.filter(tag => Number.isInteger(tag) && tag > 0);
+        if (validTags.length !== tags.length) {
+          throw new Error('All tags must be valid positive integers');
+        }
+        // Remove duplicates
+        tags = [...new Set(validTags)];
       }
 
       // Check if group with same name already exists
@@ -45,6 +57,17 @@ class Group {
           'INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
           [group.id, ownerId, 'owner']
         );
+
+        // Add tags if provided
+        if (tags && tags.length > 0) {
+          for (const genreId of tags) {
+            await query(
+              'INSERT INTO tags (group_id, genre_id) VALUES ($1, $2)',
+              [group.id, genreId]
+            );
+          }
+          console.log(`Added ${tags.length} tags to group ${group.id}: ${tags.join(', ')}`);
+        }
 
         // Commit the transaction
         await query('COMMIT');
