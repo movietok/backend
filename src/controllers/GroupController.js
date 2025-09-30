@@ -262,6 +262,19 @@ export const getGroupsByGenres = async (req, res) => {
 export const addMemberToGroup = async (req, res) => {
   try {
     const { gID } = req.params;
+    
+    // Debug logging
+    console.log('Request body:', req.body);
+    console.log('Content-Type:', req.get('Content-Type'));
+    
+    // Check if req.body exists
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Request body is required. Make sure Content-Type is application/json'
+      });
+    }
+    
     const { userId, role } = req.body;
     const ownerId = req.user.id; // Owner ID from authentication
 
