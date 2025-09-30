@@ -793,9 +793,16 @@ class Group {
           paramCount++;
         }
 
+        // Ensure we have something to update
+        if (setClause.length === 0) {
+          throw new Error('No valid fields to update');
+        }
+
         // Add WHERE clause parameters
+        const whereParamStart = paramCount;
+        const whereParamNext = paramCount + 1;
         values.push(gID, ownerId);
-        const whereClause = `WHERE id = $${paramCount} AND owner_id = $${paramCount + 1}`;
+        const whereClause = `WHERE id = $${whereParamStart} AND owner_id = $${whereParamNext}`;
 
         // Execute update
         const updateQuery = `
@@ -804,6 +811,9 @@ class Group {
           ${whereClause}
           RETURNING id, name, description, theme_id, visibility, poster_url, created_at, owner_id
         `;
+
+        console.log('Update query:', updateQuery);
+        console.log('Values:', values);
 
         const result = await query(updateQuery, values);
 
