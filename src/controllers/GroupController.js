@@ -452,6 +452,23 @@ export const updateGroupDetails = async (req, res) => {
       });
     }
 
+    // Validate and parse tags if provided
+    if (updates.tags !== undefined) {
+      if (Array.isArray(updates.tags)) {
+        updates.tags = updates.tags.map(tag => parseInt(tag)).filter(tag => !isNaN(tag) && tag > 0);
+      } else if (typeof updates.tags === 'string') {
+        // Handle comma-separated string
+        updates.tags = updates.tags.split(',')
+          .map(tag => parseInt(tag.trim()))
+          .filter(tag => !isNaN(tag) && tag > 0);
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Tags must be an array of numbers or comma-separated string'
+        });
+      }
+    }
+
     if (updates.theme_id !== undefined && updates.theme_id !== null) {
       const themeId = parseInt(updates.theme_id);
       if (isNaN(themeId)) {
