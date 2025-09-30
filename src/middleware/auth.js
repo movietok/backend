@@ -54,6 +54,44 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
+// Optional authentication middleware - allows both authenticated and non-authenticated requests
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // No token provided - continue without user
+      req.user = null;
+      return next();
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret);
+      
+      // Check if user still exists in database
+      const user = await User.findById(decoded.id);
+      if (user) {
+        req.user = user.toPublicObject();
+      } else {
+        req.user = null;
+      }
+    } catch (tokenError) {
+      // Invalid or expired token - continue without user
+      req.user = null;
+    }
+
+    next();
+  } catch (error) {
+    if (loggingConfig.errors) {
+      console.error('Optional authentication error:', error);
+    }
+    // On error, continue without user
+    req.user = null;
+    next();
+  }
+};
+
 // Middleware pyynnön validointiin
 export const validateRequest = (schema) => {
   return (req, res, next) => {
