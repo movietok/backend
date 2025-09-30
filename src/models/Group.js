@@ -338,15 +338,39 @@ class Group {
 
   /**
    * Get groups by genre tags
-   * @param {Array<number>} genreIds Array of genre IDs to filter by
+   * @param {Array<number>} genreIds Array of genre IDs to filter by (optional - if empty, returns all groups)
    * @param {number} limit Maximum number of results to return
    * @param {string} matchType 'any' (OR) or 'all' (AND) - whether to match any tag or all tags
-   * @returns {Promise<Array>} Array of groups that match the genre tags
+   * @returns {Promise<Array>} Array of groups that match the genre tags or all groups if no genres specified
    */
   static async getByGenreTags(genreIds, limit = 20, matchType = 'any') {
     try {
+      // If no genres provided, return all public groups
       if (!genreIds || genreIds.length === 0) {
-        throw new Error('Genre IDs are required');
+        const query_text = `
+          SELECT DISTINCT
+            g.id,
+            g.name,
+            g.description,
+            g.visibility,
+            g.theme_id,
+            g.poster_url,
+            g.created_at,
+            g.owner_id,
+            u.username AS owner_name,
+            COUNT(gm.user_id) AS member_count,
+            COALESCE(array_agg(DISTINCT t.genre_id) FILTER (WHERE t.genre_id IS NOT NULL), '{}') AS genre_tags
+          FROM groups g
+          JOIN users u ON g.owner_id = u.id
+          LEFT JOIN group_members gm ON g.id = gm.group_id
+          LEFT JOIN tags t ON g.id = t.group_id
+          WHERE g.visibility = 'public'
+          GROUP BY g.id, u.username
+          ORDER BY g.created_at DESC
+          LIMIT $1
+        `;
+        const result = await query(query_text, [limit]);
+        return result.rows;
       }
 
       // Validate matchType
