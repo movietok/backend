@@ -386,6 +386,211 @@ class Group {
       throw new Error(`Failed to get groups by genre tags: ${error.message}`);
     }
   }
+
+  /**
+   * Add a member to a group (owner only)
+   * @param {number} groupId Group ID
+   * @param {number} userIdToAdd User ID to add to the group
+   * @param {number} ownerId Owner's user ID (for verification)
+   * @param {string} role Role to assign (default: 'member')
+   * @returns {Promise<Object>} Added member details
+   */
+  static async addMember(groupId, userIdToAdd, ownerId, role = 'member') {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists and verify ownership
+        const groupCheck = await query(
+          'SELECT owner_id, visibility FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        if (groupCheck.rows[0].owner_id !== ownerId) {
+          throw new Error('Only the group owner can add members');
+        }
+
+        // Check if the user to add exists
+        const userCheck = await query(
+          'SELECT id, username FROM users WHERE id = $1',
+          [userIdToAdd]
+        );
+
+        if (userCheck.rows.length === 0) {
+          throw new Error('User to add not found');
+        }
+
+        // Prevent adding the owner as a member (they're already the owner)
+        if (userIdToAdd === ownerId) {
+          throw new Error('Cannot add the group owner as a member');
+        }
+
+        // Check if user is already a member
+        const memberCheck = await query(
+          'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userIdToAdd]
+        );
+
+        if (memberCheck.rows.length > 0) {
+          throw new Error('User is already a member of this group');
+        }
+
+        // Validate role
+        if (!['member', 'moderator'].includes(role)) {
+          throw new Error('Invalid role. Must be "member" or "moderator"');
+        }
+
+        // Add user to group
+        await query(
+          `INSERT INTO group_members (group_id, user_id, role, joined_at)
+           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
+          [groupId, userIdToAdd, role]
+        );
+
+        // Get the added member's details
+        const memberDetails = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            u.email,
+            gm.joined_at,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.group_id = $1 AND gm.user_id = $2`,
+          [groupId, userIdToAdd]
+        );
+
+        await query('COMMIT');
+
+        console.log(`Owner ${ownerId} added user ${userIdToAdd} to group ${groupId} with role ${role}`);
+        return memberDetails.rows[0];
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Add member error details:`, {
+        groupId,
+        userIdToAdd,
+        ownerId,
+        role,
+        error: error.message
+      });
+      throw new Error(`Failed to add member: ${error.message}`);
+    }
+  }
+
+  /**
+   * Remove a member from a group
+   * @param {number} groupId Group ID
+   * @param {number} userIdToRemove User ID to remove from the group
+   * @param {number} requestingUserId User ID performing the removal
+   * @returns {Promise<Object>} Removal confirmation
+   */
+  static async removeMember(groupId, userIdToRemove, requestingUserId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists
+        const groupCheck = await query(
+          'SELECT owner_id FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        const groupOwnerId = groupCheck.rows[0].owner_id;
+
+        // Check if the user to remove exists in the group
+        const memberCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userIdToRemove]
+        );
+
+        if (memberCheck.rows.length === 0) {
+          throw new Error('User is not a member of this group');
+        }
+
+        // Get requesting user's role in the group (if they are a member)
+        const requestingUserRole = await query(
+          'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, requestingUserId]
+        );
+
+        // Authorization logic
+        const isOwner = requestingUserId === groupOwnerId;
+        const isModerator = requestingUserRole.rows.length > 0 && requestingUserRole.rows[0].role === 'moderator';
+        const isSelfRemoval = requestingUserId === userIdToRemove;
+
+        // Check if the requesting user has permission to remove the member
+        if (!isOwner && !isModerator && !isSelfRemoval) {
+          throw new Error('You do not have permission to remove this member');
+        }
+
+        // Prevent removing the group owner
+        if (userIdToRemove === groupOwnerId) {
+          throw new Error('Cannot remove the group owner');
+        }
+
+        // Additional rule: moderators cannot remove other moderators (only owners can)
+        const targetUserRole = memberCheck.rows[0].role;
+        if (!isOwner && isModerator && targetUserRole === 'moderator' && !isSelfRemoval) {
+          throw new Error('Moderators cannot remove other moderators');
+        }
+
+        // Get user details before removal
+        const userDetails = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.group_id = $1 AND gm.user_id = $2`,
+          [groupId, userIdToRemove]
+        );
+
+        // Remove the member
+        await query(
+          'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userIdToRemove]
+        );
+
+        await query('COMMIT');
+
+        console.log(`User ${requestingUserId} removed user ${userIdToRemove} from group ${groupId}`);
+        
+        return {
+          removedUser: userDetails.rows[0],
+          removedBy: requestingUserId,
+          isOwnerAction: isOwner,
+          isModeratorAction: isModerator,
+          isSelfRemoval: isSelfRemoval
+        };
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Remove member error details:`, {
+        groupId,
+        userIdToRemove,
+        requestingUserId,
+        error: error.message
+      });
+      throw new Error(`Failed to remove member: ${error.message}`);
+    }
+  }
 }
 
 export default Group;

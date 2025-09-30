@@ -246,3 +246,158 @@ export const getGroupsByGenres = async (req, res) => {
     });
   }
 };
+
+export const addMemberToGroup = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const { userId, role } = req.body;
+    const ownerId = req.user.id; // Owner ID from authentication
+
+    // Validate required fields
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required'
+      });
+    }
+
+    // Validate userId is a number
+    const userIdToAdd = parseInt(userId);
+    if (isNaN(userIdToAdd)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    // Validate role if provided
+    if (role && !['member', 'moderator'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be "member" or "moderator"'
+      });
+    }
+
+    const member = await Group.addMember(gID, userIdToAdd, ownerId, role || 'member');
+
+    res.status(201).json({
+      success: true,
+      message: 'Member added successfully',
+      member
+    });
+  } catch (error) {
+    console.error('Error adding member to group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'User to add not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    if (error.message === 'Only the group owner can add members') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to add members to this group'
+      });
+    }
+    
+    if (error.message === 'User is already a member of this group' ||
+        error.message === 'Cannot add the group owner as a member') {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add member'
+    });
+  }
+};
+
+export const removeMemberFromGroup = async (req, res) => {
+  try {
+    const { gID, userId } = req.params;
+    const requestingUserId = req.user.id; // User performing the removal
+
+    // Validate userId parameter
+    const userIdToRemove = parseInt(userId);
+    if (isNaN(userIdToRemove)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    const result = await Group.removeMember(gID, userIdToRemove, requestingUserId);
+
+    // Customize response message based on who performed the action
+    let message;
+    if (result.isSelfRemoval) {
+      message = 'You have left the group successfully';
+    } else if (result.isOwnerAction) {
+      message = 'Member removed successfully by group owner';
+    } else if (result.isModeratorAction) {
+      message = 'Member removed successfully by group moderator';
+    }
+
+    res.json({
+      success: true,
+      message,
+      removedUser: {
+        id: result.removedUser.id,
+        username: result.removedUser.username,
+        role: result.removedUser.role
+      },
+      actionType: result.isSelfRemoval ? 'self_removal' : 
+                  result.isOwnerAction ? 'owner_removal' : 'moderator_removal'
+    });
+  } catch (error) {
+    console.error('Error removing member from group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'User is not a member of this group') {
+      return res.status(404).json({
+        success: false,
+        error: 'User is not a member of this group'
+      });
+    }
+    
+    if (error.message === 'You do not have permission to remove this member' ||
+        error.message === 'Moderators cannot remove other moderators') {
+      return res.status(403).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'Cannot remove the group owner') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot remove the group owner'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to remove member'
+    });
+  }
+};

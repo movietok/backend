@@ -6,7 +6,9 @@ import {
   deleteGroup,
   searchGroups,
   joinGroup,
-  getGroupsByGenres
+  getGroupsByGenres,
+  addMemberToGroup,
+  removeMemberFromGroup
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
@@ -28,6 +30,12 @@ router.get('/:gID', getGroupDetails);
 
 // Join group
 router.post('/:gID/join', joinGroup);
+
+// Add member to group (owner only)
+router.post('/:gID/members', addMemberToGroup);
+
+// Remove member from group (owner, moderator, or self)
+router.delete('/:gID/members/:userId', removeMemberFromGroup);
 
 // Delete a group
 router.delete('/:gID', deleteGroup);
