@@ -405,3 +405,92 @@ export const removeMemberFromGroup = async (req, res) => {
     });
   }
 };
+
+export const updateGroupDetails = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const ownerId = req.user.id; // Owner ID from authentication
+    const updates = req.body;
+
+    // Validate that at least one field is provided
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one field must be provided for update'
+      });
+    }
+
+    // Validate individual fields if provided
+    if (updates.name !== undefined && (!updates.name || updates.name.trim().length === 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group name cannot be empty'
+      });
+    }
+
+    if (updates.visibility && !['public', 'private', 'closed'].includes(updates.visibility)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Visibility must be public, private, or closed'
+      });
+    }
+
+    if (updates.theme_id !== undefined && updates.theme_id !== null) {
+      const themeId = parseInt(updates.theme_id);
+      if (isNaN(themeId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Theme ID must be a valid number or null'
+        });
+      }
+      updates.theme_id = themeId;
+    }
+
+    const updatedGroup = await Group.updateDetails(gID, ownerId, updates);
+
+    res.json({
+      success: true,
+      message: 'Group details updated successfully',
+      group: updatedGroup,
+      updatedFields: Object.keys(updates)
+    });
+  } catch (error) {
+    console.error('Error updating group details:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'Only the group owner can update group details') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to update this group'
+      });
+    }
+    
+    if (error.message === 'A group with this name already exists') {
+      return res.status(400).json({
+        success: false,
+        error: 'A group with this name already exists'
+      });
+    }
+    
+    if (error.message.includes('Invalid fields:') || 
+        error.message.includes('Invalid visibility') ||
+        error.message.includes('Theme ID must be')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message.replace('Failed to update group details: ', '')
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update group details'
+    });
+  }
+};

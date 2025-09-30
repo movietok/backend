@@ -8,7 +8,8 @@ import {
   joinGroup,
   getGroupsByGenres,
   addMemberToGroup,
-  removeMemberFromGroup
+  removeMemberFromGroup,
+  updateGroupDetails
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
@@ -27,6 +28,9 @@ router.post('/', createGroup);
 
 // Get group details
 router.get('/:gID', getGroupDetails);
+
+// Update group details (owner only)
+router.put('/:gID', updateGroupDetails);
 
 // Join group
 router.post('/:gID/join', joinGroup);

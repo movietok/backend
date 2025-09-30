@@ -627,6 +627,161 @@ class Group {
       throw new Error(`Failed to remove member: ${error.message}`);
     }
   }
+
+  /**
+   * Update group details
+   * @param {number} gID Group ID
+   * @param {number} ownerId Owner's user ID (for verification)
+   * @param {Object} updates Object containing fields to update
+   * @param {string} updates.name New group name (optional)
+   * @param {string} updates.description New description (optional)
+   * @param {number} updates.theme_id New theme ID (optional)
+   * @param {string} updates.visibility New visibility (optional)
+   * @param {string} updates.poster_url New poster URL (optional)
+   * @returns {Promise<Object>} Updated group details
+   */
+  static async updateDetails(gID, ownerId, updates) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists and verify ownership
+        const groupCheck = await query(
+          'SELECT id, owner_id, name FROM groups WHERE id = $1',
+          [gID]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        if (groupCheck.rows[0].owner_id !== ownerId) {
+          throw new Error('Only the group owner can update group details');
+        }
+
+        // Validate updates object
+        if (!updates || Object.keys(updates).length === 0) {
+          throw new Error('No updates provided');
+        }
+
+        // Validate allowed fields
+        const allowedFields = ['name', 'description', 'theme_id', 'visibility', 'poster_url'];
+        const updateFields = Object.keys(updates);
+        const invalidFields = updateFields.filter(field => !allowedFields.includes(field));
+        
+        if (invalidFields.length > 0) {
+          throw new Error(`Invalid fields: ${invalidFields.join(', ')}. Allowed fields: ${allowedFields.join(', ')}`);
+        }
+
+        // Validate specific field values
+        if (updates.visibility && !['public', 'private', 'closed'].includes(updates.visibility)) {
+          throw new Error('Invalid visibility value. Must be public, private, or closed');
+        }
+
+        if (updates.theme_id !== undefined && updates.theme_id !== null && isNaN(parseInt(updates.theme_id))) {
+          throw new Error('Theme ID must be a valid number or null');
+        }
+
+        // Check for duplicate group name if name is being updated
+        if (updates.name && updates.name !== groupCheck.rows[0].name) {
+          const nameCheck = await query(
+            'SELECT id FROM groups WHERE LOWER(name) = LOWER($1) AND id != $2',
+            [updates.name, gID]
+          );
+
+          if (nameCheck.rows.length > 0) {
+            throw new Error('A group with this name already exists');
+          }
+        }
+
+        // Build dynamic update query
+        const setClause = [];
+        const values = [];
+        let paramCount = 1;
+
+        if (updates.name !== undefined) {
+          setClause.push(`name = $${paramCount}`);
+          values.push(updates.name);
+          paramCount++;
+        }
+
+        if (updates.description !== undefined) {
+          setClause.push(`description = $${paramCount}`);
+          values.push(updates.description);
+          paramCount++;
+        }
+
+        if (updates.theme_id !== undefined) {
+          setClause.push(`theme_id = $${paramCount}`);
+          values.push(updates.theme_id);
+          paramCount++;
+        }
+
+        if (updates.visibility !== undefined) {
+          setClause.push(`visibility = $${paramCount}`);
+          values.push(updates.visibility);
+          paramCount++;
+        }
+
+        if (updates.poster_url !== undefined) {
+          setClause.push(`poster_url = $${paramCount}`);
+          values.push(updates.poster_url);
+          paramCount++;
+        }
+
+        // Add updated_at timestamp
+        setClause.push(`updated_at = CURRENT_TIMESTAMP`);
+
+        // Add WHERE clause parameters
+        values.push(gID, ownerId);
+        const whereClause = `WHERE id = $${paramCount} AND owner_id = $${paramCount + 1}`;
+
+        // Execute update
+        const updateQuery = `
+          UPDATE groups 
+          SET ${setClause.join(', ')} 
+          ${whereClause}
+          RETURNING id, name, description, theme_id, visibility, poster_url, updated_at, created_at, owner_id
+        `;
+
+        const result = await query(updateQuery, values);
+
+        if (result.rows.length === 0) {
+          throw new Error('Failed to update group details');
+        }
+
+        // Get owner name
+        const ownerInfo = await query(
+          'SELECT username FROM users WHERE id = $1',
+          [ownerId]
+        );
+
+        const updatedGroup = result.rows[0];
+        updatedGroup.owner_name = ownerInfo.rows[0]?.username;
+
+        await query('COMMIT');
+
+        console.log(`Group ${gID} details updated by owner ${ownerId}:`, {
+          updatedFields: Object.keys(updates),
+          values: updates
+        });
+
+        return updatedGroup;
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Update group details error:`, {
+        groupId: gID,
+        ownerId,
+        updates,
+        error: error.message
+      });
+      throw new Error(`Failed to update group details: ${error.message}`);
+    }
+  }
 }
 
 export default Group;
