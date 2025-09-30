@@ -298,6 +298,94 @@ class Group {
       throw new Error(`Failed to join group: ${error.message}`);
     }
   }
+
+  /**
+   * Get groups by genre tags
+   * @param {Array<number>} genreIds Array of genre IDs to filter by
+   * @param {number} limit Maximum number of results to return
+   * @param {string} matchType 'any' (OR) or 'all' (AND) - whether to match any tag or all tags
+   * @returns {Promise<Array>} Array of groups that match the genre tags
+   */
+  static async getByGenreTags(genreIds, limit = 20, matchType = 'any') {
+    try {
+      if (!genreIds || genreIds.length === 0) {
+        throw new Error('Genre IDs are required');
+      }
+
+      // Validate matchType
+      if (!['any', 'all'].includes(matchType)) {
+        throw new Error('Match type must be "any" or "all"');
+      }
+
+      let query_text;
+      let queryParams;
+
+      if (matchType === 'any') {
+        // Match groups that have ANY of the specified genre tags
+        query_text = `
+          SELECT DISTINCT
+            g.id,
+            g.name,
+            g.description,
+            g.visibility,
+            g.theme_id,
+            g.poster_url,
+            g.created_at,
+            g.owner_id,
+            u.username AS owner_name,
+            COUNT(gm.user_id) AS member_count,
+            array_agg(DISTINCT t.genre_id) AS genre_tags
+          FROM groups g
+          JOIN users u ON g.owner_id = u.id
+          LEFT JOIN group_members gm ON g.id = gm.group_id
+          JOIN tags t ON g.id = t.group_id
+          WHERE t.genre_id = ANY($1)
+            AND g.visibility = 'public'
+          GROUP BY g.id, u.username
+          ORDER BY g.created_at DESC
+          LIMIT $2
+        `;
+        queryParams = [genreIds, limit];
+      } else {
+        // Match groups that have ALL of the specified genre tags
+        query_text = `
+          SELECT DISTINCT
+            g.id,
+            g.name,
+            g.description,
+            g.visibility,
+            g.theme_id,
+            g.poster_url,
+            g.created_at,
+            g.owner_id,
+            u.username AS owner_name,
+            COUNT(gm.user_id) AS member_count,
+            array_agg(DISTINCT t.genre_id) AS genre_tags
+          FROM groups g
+          JOIN users u ON g.owner_id = u.id
+          LEFT JOIN group_members gm ON g.id = gm.group_id
+          JOIN tags t ON g.id = t.group_id
+          WHERE g.id IN (
+            SELECT group_id 
+            FROM tags 
+            WHERE genre_id = ANY($1)
+            GROUP BY group_id 
+            HAVING COUNT(DISTINCT genre_id) = $2
+          )
+          AND g.visibility = 'public'
+          GROUP BY g.id, u.username
+          ORDER BY g.created_at DESC
+          LIMIT $3
+        `;
+        queryParams = [genreIds, genreIds.length, limit];
+      }
+
+      const result = await query(query_text, queryParams);
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to get groups by genre tags: ${error.message}`);
+    }
+  }
 }
 
 export default Group;

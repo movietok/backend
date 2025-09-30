@@ -189,3 +189,60 @@ export const deleteGroup = async (req, res) => {
     });
   }
 };
+
+export const getGroupsByGenres = async (req, res) => {
+  try {
+    const { genres, limit, matchType } = req.query;
+    
+    // Validate genres parameter
+    if (!genres) {
+      return res.status(400).json({
+        success: false,
+        error: 'Genres parameter is required'
+      });
+    }
+
+    // Parse genres - can be comma-separated string or array
+    let genreIds;
+    if (typeof genres === 'string') {
+      genreIds = genres.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    } else if (Array.isArray(genres)) {
+      genreIds = genres.map(id => parseInt(id)).filter(id => !isNaN(id));
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Genres must be a comma-separated string or array of numbers'
+      });
+    }
+
+    if (genreIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one valid genre ID is required'
+      });
+    }
+
+    // Validate matchType if provided
+    const validMatchType = matchType && ['any', 'all'].includes(matchType) ? matchType : 'any';
+
+    const groups = await Group.getByGenreTags(
+      genreIds, 
+      parseInt(limit) || 20, 
+      validMatchType
+    );
+
+    res.json({
+      success: true,
+      matchType: validMatchType,
+      genreIds,
+      count: groups.length,
+      groups
+    });
+  } catch (error) {
+    console.error('Error getting groups by genres:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};

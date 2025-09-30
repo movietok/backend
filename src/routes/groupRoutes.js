@@ -5,7 +5,8 @@ import {
   getGroupDetails,
   deleteGroup,
   searchGroups,
-  joinGroup
+  joinGroup,
+  getGroupsByGenres
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.use(authenticateToken);
 
 // Search groups
 router.get('/search', searchGroups);
+
+// Get groups by genre tags
+router.get('/by-genres', getGroupsByGenres);
 
 // Create a new group
 router.post('/', createGroup);
