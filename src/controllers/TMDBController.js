@@ -56,8 +56,8 @@ export const discoverMovies = async (req, res) => {
 
     // Support GET with_genres
     if (req.query.with_genres) {
-  options.withGenres = req.query.with_genres.split(",").map(Number);
-}
+      options.withGenres = req.query.with_genres.split(",").map(Number);
+    }
 
     // If it's a POST request and has genre data, add it to the options
     if (method === 'POST' && req.body.genres && Array.isArray(req.body.genres)) {
@@ -65,9 +65,24 @@ export const discoverMovies = async (req, res) => {
     }
 
     const results = await TMDBService.discoverMovies(options);
+
+    // Process all movies and save to database if they don't exist
+    let databaseStats = null;
+    try {
+      const processResult = await Movie.processMultipleMovies(results.results);
+      databaseStats = processResult.stats;
+      
+      // Log the database processing results
+      console.log('Database processing stats:', databaseStats);
+    } catch (dbError) {
+      console.error('Error processing movies to database:', dbError);
+      // Don't fail the request if database processing fails
+    }
+
     res.json({
       success: true,
-      ...results
+      ...results,
+      databaseStats // Include stats about what was saved to database
     });
   } catch (error) {
     console.error('Error discovering movies:', error);

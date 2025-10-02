@@ -7,6 +7,7 @@ class Movie {
     this.release_year = data.release_year;
     this.imdb_rating = data.imdb_rating;
     this.tmdb_id = data.tmdb_id;
+    this.poster_url = data.poster_url;
   }
 
   // CREATE - Create a new movie manually (rarely used as movies typically come from TMDB)
@@ -214,6 +215,7 @@ class Movie {
         tmdb_id: tmdbData.id,
         original_title: tmdbData.originalTitle,
         release_year: releaseYear,
+        poster_url: tmdbData.posterPath,
         full_tmdb_data: tmdbData // This shows all available TMDB data
       });
 
@@ -223,19 +225,95 @@ class Movie {
           id,
           original_title, 
           tmdb_id, 
-          release_year
-        ) VALUES ($1, $2, $3, $4) RETURNING *`,
+          release_year,
+          poster_url
+        ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [
           nextId,
           tmdbData.originalTitle,
           tmdbData.id,
-          releaseYear
+          releaseYear,
+          tmdbData.posterPath
         ]
       );
 
       return new Movie(result.rows[0]);
     } catch (error) {
       throw new Error(`Error creating movie from TMDB data: ${error.message}`);
+    }
+  }
+
+  // Process multiple movies from discover/search results
+  static async processMultipleMovies(moviesArray) {
+    try {
+      const processedMovies = [];
+      const errors = [];
+
+      for (const movieData of moviesArray) {
+        try {
+          // Check if movie already exists by TMDB ID
+          const existingMovie = await Movie.findByTmdbId(movieData.id);
+          if (existingMovie) {
+            processedMovies.push({ 
+              ...existingMovie, 
+              status: 'existing' 
+            });
+            continue;
+          }
+
+          // Extract year from release date (YYYY-MM-DD format)
+          const releaseYear = movieData.releaseDate ? parseInt(movieData.releaseDate.split('-')[0]) : null;
+
+          // Get the highest current ID and increment it
+          const maxResult = await query('SELECT MAX(id::numeric) as max_id FROM movies');
+          const nextId = maxResult.rows[0].max_id ? (parseInt(maxResult.rows[0].max_id) + 1).toString() : '1';
+
+          // Create new movie with TMDB data
+          const result = await query(
+            `INSERT INTO movies (
+              id,
+              original_title, 
+              tmdb_id, 
+              release_year,
+              poster_url
+            ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [
+              nextId,
+              movieData.originalTitle,
+              movieData.id,
+              releaseYear,
+              movieData.posterPath
+            ]
+          );
+
+          const newMovie = new Movie(result.rows[0]);
+          processedMovies.push({ 
+            ...newMovie, 
+            status: 'created' 
+          });
+
+        } catch (error) {
+          errors.push({
+            movieId: movieData.id,
+            title: movieData.originalTitle,
+            error: error.message
+          });
+          console.error(`Error processing movie ${movieData.id} (${movieData.originalTitle}):`, error);
+        }
+      }
+
+      return {
+        processed: processedMovies,
+        errors: errors,
+        stats: {
+          total: moviesArray.length,
+          created: processedMovies.filter(m => m.status === 'created').length,
+          existing: processedMovies.filter(m => m.status === 'existing').length,
+          failed: errors.length
+        }
+      };
+    } catch (error) {
+      throw new Error(`Error processing multiple movies: ${error.message}`);
     }
   }
 }
