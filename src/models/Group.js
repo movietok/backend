@@ -87,9 +87,10 @@ class Group {
   /**
    * Get group details by ID
    * @param {number} gID Group ID
+   * @param {number|null} userId User ID requesting the group details (optional)
    * @returns {Promise<Object>} Group details
    */
-  static async getById(gID) {
+  static async getById(gID, userId = null) {
     try {      
       // Start a transaction to ensure consistent read
       await query('BEGIN');
@@ -107,7 +108,7 @@ class Group {
               g.created_at,
               g.owner_id,
               u.username AS owner_name,
-              COUNT(gm.user_id) AS member_count
+              COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count
           FROM groups g
           JOIN users u ON g.owner_id = u.id
           LEFT JOIN group_members gm ON g.id = gm.group_id
@@ -120,12 +121,33 @@ class Group {
           throw new Error('Group not found');
         }
 
-        // Get group members
+        const group = groupResult.rows[0];
+
+        // Check access permissions for private groups
+        if (group.visibility === 'private') {
+          if (!userId) {
+            throw new Error('Authentication required to view this private group');
+          }
+
+          // Check if user is a member or owner of the private group
+          const memberCheck = await query(
+            'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
+            [gID, userId]
+          );
+
+          const isOwner = group.owner_id === userId;
+          const isMember = memberCheck.rows.length > 0;
+
+          if (!isOwner && !isMember) {
+            throw new Error('You are not a member of this private group and cannot view its details');
+          }
+        }
+
+        // Get group members (without email)
         const membersResult = await query(
           `SELECT 
             u.id,
             u.username,
-            u.email,
             gm.joined_at,
             gm.role
           FROM group_members gm
@@ -136,7 +158,6 @@ class Group {
         );
 
         // Combine group details with members
-        const group = groupResult.rows[0];
         group.members = membersResult.rows;
 
         await query('COMMIT');
@@ -248,7 +269,7 @@ class Group {
           g.created_at,
           g.owner_id,
           u.username AS owner_name,
-          COUNT(gm.user_id) AS member_count,
+          COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
           similarity(LOWER(g.name), LOWER($1)) AS name_similarity
         FROM groups g
         JOIN users u ON g.owner_id = u.id
@@ -381,7 +402,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             COALESCE(array_agg(DISTINCT t.genre_id) FILTER (WHERE t.genre_id IS NOT NULL), '{}') AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
@@ -417,7 +438,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
@@ -443,7 +464,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
@@ -472,22 +493,20 @@ class Group {
   }
 
   /**
-   * Add a member to a group (owner only)
+   * Request to join a group (creates pending membership)
    * @param {number} groupId Group ID
-   * @param {number} userIdToAdd User ID to add to the group
-   * @param {number} ownerId Owner's user ID (for verification)
-   * @param {string} role Role to assign (default: 'member')
-   * @returns {Promise<Object>} Added member details
+   * @param {number} userId User ID requesting to join
+   * @returns {Promise<Object>} Join request details
    */
-  static async addMember(groupId, userIdToAdd, ownerId, role = 'member') {
+  static async requestToJoin(groupId, userId) {
     try {
       // Start a transaction
       await query('BEGIN');
 
       try {
-        // Check if group exists and verify ownership
+        // Check if group exists
         const groupCheck = await query(
-          'SELECT owner_id, visibility FROM groups WHERE id = $1',
+          'SELECT id, name, owner_id, visibility FROM groups WHERE id = $1',
           [groupId]
         );
 
@@ -495,78 +514,265 @@ class Group {
           throw new Error('Group not found');
         }
 
-        if (groupCheck.rows[0].owner_id !== ownerId) {
-          throw new Error('Only the group owner can add members');
-        }
+        const group = groupCheck.rows[0];
 
-        // Check if the user to add exists
+        // Check if user exists
         const userCheck = await query(
           'SELECT id, username FROM users WHERE id = $1',
-          [userIdToAdd]
+          [userId]
         );
 
         if (userCheck.rows.length === 0) {
-          throw new Error('User to add not found');
+          throw new Error('User not found');
         }
 
-        // Prevent adding the owner as a member (they're already the owner)
-        if (userIdToAdd === ownerId) {
-          throw new Error('Cannot add the group owner as a member');
+        const user = userCheck.rows[0];
+
+        // Prevent owner from requesting to join their own group
+        if (userId === group.owner_id) {
+          throw new Error('You are already the owner of this group');
         }
 
-        // Check if user is already a member
+        // Check if user is already a member or has pending request
         const memberCheck = await query(
-          'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
-          [groupId, userIdToAdd]
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
         );
 
         if (memberCheck.rows.length > 0) {
-          throw new Error('User is already a member of this group');
+          const currentRole = memberCheck.rows[0].role;
+          if (currentRole === 'pending') {
+            throw new Error('You already have a pending join request for this group');
+          } else {
+            throw new Error('You are already a member of this group');
+          }
         }
 
-        // Validate role
-        if (!['member', 'moderator'].includes(role)) {
-          throw new Error('Invalid role. Must be "member" or "moderator"');
-        }
-
-        // Add user to group
+        // Add user to group with pending role
         await query(
           `INSERT INTO group_members (group_id, user_id, role, joined_at)
-           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
-          [groupId, userIdToAdd, role]
-        );
-
-        // Get the added member's details
-        const memberDetails = await query(
-          `SELECT 
-            u.id,
-            u.username,
-            u.email,
-            gm.joined_at,
-            gm.role
-          FROM group_members gm
-          JOIN users u ON gm.user_id = u.id
-          WHERE gm.group_id = $1 AND gm.user_id = $2`,
-          [groupId, userIdToAdd]
+           VALUES ($1, $2, 'pending', CURRENT_TIMESTAMP)`,
+          [groupId, userId]
         );
 
         await query('COMMIT');
 
-        console.log(`Owner ${ownerId} added user ${userIdToAdd} to group ${groupId} with role ${role}`);
-        return memberDetails.rows[0];
+        console.log(`User ${userId} created join request for group ${groupId}`);
+        
+        return {
+          group: {
+            id: group.id,
+            name: group.name
+          },
+          member: {
+            id: user.id,
+            username: user.username,
+            role: 'pending',
+            joined_at: new Date().toISOString()
+          }
+        };
+
       } catch (error) {
         await query('ROLLBACK');
         throw error;
       }
     } catch (error) {
-      console.error(`Add member error details:`, {
+      console.error(`Request to join error details:`, {
         groupId,
-        userIdToAdd,
-        ownerId,
-        role,
+        userId,
         error: error.message
       });
-      throw new Error(`Failed to add member: ${error.message}`);
+      throw new Error(`Failed to process join request: ${error.message}`);
+    }
+  }
+
+  /**
+   * Approve a pending join request (owner or moderator only)
+   * @param {number} groupId Group ID
+   * @param {number} userIdToApprove User ID whose request to approve
+   * @param {number} approverId ID of user performing the approval (owner or moderator)
+   * @returns {Promise<Object>} Approval result
+   */
+  static async approvePendingMember(groupId, userIdToApprove, approverId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists
+        const groupCheck = await query(
+          'SELECT owner_id, name FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        const group = groupCheck.rows[0];
+
+        // Check if approver has permission (owner or moderator)
+        const approverCheck = await query(
+          'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, approverId]
+        );
+
+        const isOwner = group.owner_id === approverId;
+        const isModerator = approverCheck.rows.length > 0 && approverCheck.rows[0].role === 'moderator';
+
+        if (!isOwner && !isModerator) {
+          throw new Error('Only group owners or moderators can approve join requests');
+        }
+
+        // Check if there's a pending request from this user
+        const pendingCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2 AND role = $3',
+          [groupId, userIdToApprove, 'pending']
+        );
+
+        if (pendingCheck.rows.length === 0) {
+          throw new Error('No pending join request found for this user');
+        }
+
+        // Get user details
+        const userCheck = await query(
+          'SELECT id, username FROM users WHERE id = $1',
+          [userIdToApprove]
+        );
+
+        if (userCheck.rows.length === 0) {
+          throw new Error('User not found');
+        }
+
+        const user = userCheck.rows[0];
+
+        // Update role from pending to member
+        await query(
+          'UPDATE group_members SET role = $1 WHERE group_id = $2 AND user_id = $3',
+          ['member', groupId, userIdToApprove]
+        );
+
+        await query('COMMIT');
+
+        console.log(`${isOwner ? 'Owner' : 'Moderator'} ${approverId} approved join request for user ${userIdToApprove} in group ${groupId}`);
+        
+        return {
+          group: {
+            id: groupId,
+            name: group.name
+          },
+          member: {
+            id: user.id,
+            username: user.username,
+            role: 'member'
+          },
+          approvedBy: {
+            id: approverId,
+            role: isOwner ? 'owner' : 'moderator'
+          }
+        };
+
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Approve pending member error details:`, {
+        groupId,
+        userIdToApprove,
+        approverId,
+        error: error.message
+      });
+      throw new Error(`Failed to approve join request: ${error.message}`);
+    }
+  }
+
+  /**
+   * Leave a group (user removes themselves)
+   * @param {number} groupId Group ID
+   * @param {number} userId User ID leaving the group
+   * @returns {Promise<Object>} Leave confirmation
+   */
+  static async leaveGroup(groupId, userId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists
+        const groupCheck = await query(
+          'SELECT owner_id, name FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        const group = groupCheck.rows[0];
+
+        // Prevent owner from leaving their own group
+        if (userId === group.owner_id) {
+          throw new Error('Group owners cannot leave their own group. Please delete the group');
+        }
+
+        // Check if user is a member of the group
+        const memberCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+          throw new Error('You are not a member of this group');
+        }
+
+        const userRole = memberCheck.rows[0].role;
+
+        // Get user details before removal
+        const userDetails = await query(
+          'SELECT id, username FROM users WHERE id = $1',
+          [userId]
+        );
+
+        if (userDetails.rows.length === 0) {
+          throw new Error('User not found');
+        }
+
+        const user = userDetails.rows[0];
+
+        // Remove user from group
+        await query(
+          'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
+        );
+
+        await query('COMMIT');
+
+        console.log(`User ${userId} left group ${groupId} (was ${userRole})`);
+
+        return {
+          group: {
+            id: groupId,
+            name: group.name
+          },
+          user: {
+            id: user.id,
+            username: user.username,
+            previousRole: userRole
+          }
+        };
+
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Leave group error details:`, {
+        groupId,
+        userId,
+        error: error.message
+      });
+      throw new Error(`Failed to leave group: ${error.message}`);
     }
   }
 
@@ -611,14 +817,13 @@ class Group {
           [groupId, requestingUserId]
         );
 
-        // Authorization logic
+        // Authorization logic - only owners and moderators can remove members
         const isOwner = requestingUserId === groupOwnerId;
         const isModerator = requestingUserRole.rows.length > 0 && requestingUserRole.rows[0].role === 'moderator';
-        const isSelfRemoval = requestingUserId === userIdToRemove;
 
         // Check if the requesting user has permission to remove the member
-        if (!isOwner && !isModerator && !isSelfRemoval) {
-          throw new Error('You do not have permission to remove this member');
+        if (!isOwner && !isModerator) {
+          throw new Error('Only group owners and moderators can remove members');
         }
 
         // Prevent removing the group owner
@@ -626,9 +831,14 @@ class Group {
           throw new Error('Cannot remove the group owner');
         }
 
+        // Prevent users from removing themselves (they should use the leave endpoint)
+        if (requestingUserId === userIdToRemove) {
+          throw new Error('Use the leave group endpoint to remove yourself from the group');
+        }
+
         // Additional rule: moderators cannot remove other moderators (only owners can)
         const targetUserRole = memberCheck.rows[0].role;
-        if (!isOwner && isModerator && targetUserRole === 'moderator' && !isSelfRemoval) {
+        if (!isOwner && isModerator && targetUserRole === 'moderator') {
           throw new Error('Moderators cannot remove other moderators');
         }
 
@@ -658,8 +868,7 @@ class Group {
           removedUser: userDetails.rows[0],
           removedBy: requestingUserId,
           isOwnerAction: isOwner,
-          isModeratorAction: isModerator,
-          isSelfRemoval: isSelfRemoval
+          isModeratorAction: isModerator
         };
       } catch (error) {
         await query('ROLLBACK');
@@ -673,6 +882,106 @@ class Group {
         error: error.message
       });
       throw new Error(`Failed to remove member: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update member role in a group (owner only)
+   * @param {number} groupId Group ID
+   * @param {number} memberId Member's user ID whose role to update
+   * @param {number} ownerId Owner's user ID (for verification)
+   * @param {string} newRole New role to assign ('member' or 'moderator')
+   * @returns {Promise<Object>} Updated member details
+   */
+  static async updateMemberRole(groupId, memberId, ownerId, newRole) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists and verify ownership
+        const groupCheck = await query(
+          'SELECT owner_id FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        if (groupCheck.rows[0].owner_id !== ownerId) {
+          throw new Error('Only the group owner can update member roles');
+        }
+
+        // Validate new role
+        if (!['member', 'moderator'].includes(newRole)) {
+          throw new Error('Invalid role. Must be "member" or "moderator"');
+        }
+
+        // Check if the user is a member of the group
+        const memberCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, memberId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+          throw new Error('User is not a member of this group');
+        }
+
+        // Prevent changing the owner's role
+        if (memberId === ownerId) {
+          throw new Error('Cannot change the role of the group owner');
+        }
+
+        const currentRole = memberCheck.rows[0].role;
+
+        // Check if role is already the same
+        if (currentRole === newRole) {
+          throw new Error(`User is already a ${newRole}`);
+        }
+
+        // Update the member's role
+        await query(
+          'UPDATE group_members SET role = $1 WHERE group_id = $2 AND user_id = $3',
+          [newRole, groupId, memberId]
+        );
+
+        // Get updated member details
+        const updatedMember = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            gm.joined_at,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.group_id = $1 AND gm.user_id = $2`,
+          [groupId, memberId]
+        );
+
+        await query('COMMIT');
+
+        console.log(`Owner ${ownerId} updated role of user ${memberId} from ${currentRole} to ${newRole} in group ${groupId}`);
+        
+        return {
+          member: updatedMember.rows[0],
+          previousRole: currentRole,
+          newRole: newRole,
+          updatedBy: ownerId
+        };
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Update member role error details:`, {
+        groupId,
+        memberId,
+        ownerId,
+        newRole,
+        error: error.message
+      });
+      throw new Error(`Failed to update member role: ${error.message}`);
     }
   }
 
@@ -872,6 +1181,179 @@ class Group {
         error: error.message
       });
       throw new Error(`Failed to update group details: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all group themes
+   * @returns {Promise<Array>} Array of all group themes
+   */
+  static async getAllThemes() {
+    try {
+      const result = await query(
+        'SELECT id, name, theme FROM group_themes ORDER BY name ASC'
+      );
+
+      console.log(`Retrieved ${result.rows.length} group themes`);
+      return result.rows;
+    } catch (error) {
+      console.error(`Get all themes error:`, {
+        error: error.message
+      });
+      throw new Error(`Failed to get group themes: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all groups that a user belongs to, ordered by role
+   * @param {number} userId User ID
+   * @returns {Promise<Array>} Array of groups ordered by user's role (owner, moderator, member)
+   */
+  static async getUserGroups(userId) {
+    try {
+      // Get groups where user is owner
+      const ownerGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          'owner' as user_role,
+          (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.role != 'pending') as member_count
+        FROM groups g
+        WHERE g.owner_id = $1
+        ORDER BY g.created_at DESC`,
+        [userId]
+      );
+
+      // Get groups where user is moderator
+      const moderatorGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          gm.role as user_role,
+          gm.joined_at,
+          (SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.id AND gm2.role != 'pending') as member_count
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = $1 AND gm.role = 'moderator'
+        ORDER BY gm.joined_at DESC`,
+        [userId]
+      );
+
+      // Get groups where user is member
+      const memberGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          gm.role as user_role,
+          gm.joined_at,
+          (SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.id AND gm2.role != 'pending') as member_count
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = $1 AND gm.role = 'member'
+        ORDER BY gm.joined_at DESC`,
+        [userId]
+      );
+
+      // Combine all groups in the desired order
+      const allGroups = [
+        ...ownerGroups.rows,
+        ...moderatorGroups.rows,
+        ...memberGroups.rows
+      ];
+
+      console.log(`Retrieved ${allGroups.length} groups for user ${userId} (${ownerGroups.rows.length} owned, ${moderatorGroups.rows.length} moderated, ${memberGroups.rows.length} member)`);
+      
+      return {
+        total: allGroups.length,
+        owned: ownerGroups.rows.length,
+        moderated: moderatorGroups.rows.length,
+        member: memberGroups.rows.length,
+        groups: allGroups
+      };
+    } catch (error) {
+      console.error(`Get user groups error:`, {
+        userId,
+        error: error.message
+      });
+      throw new Error(`Failed to get user groups: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all pending join requests for a group
+   * @param {number} groupId Group ID
+   * @param {number} requesterId User ID making the request (for authorization)
+   * @returns {Promise<Array>} Array of pending join requests
+   */
+  static async getAllPendingRequests(groupId, requesterId) {
+    try {
+      // Check if group exists
+      const groupCheck = await query(
+        'SELECT owner_id, name FROM groups WHERE id = $1',
+        [groupId]
+      );
+
+      if (groupCheck.rows.length === 0) {
+        throw new Error('Group not found');
+      }
+
+      const group = groupCheck.rows[0];
+
+      // Check if requester has permission (owner or moderator)
+      const requesterCheck = await query(
+        'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+        [groupId, requesterId]
+      );
+
+      const isOwner = group.owner_id === requesterId;
+      const isModerator = requesterCheck.rows.length > 0 && requesterCheck.rows[0].role === 'moderator';
+
+      if (!isOwner && !isModerator) {
+        throw new Error('Only group owners and moderators can view pending requests');
+      }
+
+      // Get all pending requests for the group
+      const result = await query(
+        `SELECT 
+          u.id,
+          u.username,
+          gm.joined_at as requested_at
+        FROM group_members gm
+        JOIN users u ON gm.user_id = u.id
+        WHERE gm.group_id = $1 AND gm.role = 'pending'
+        ORDER BY gm.joined_at ASC`,
+        [groupId]
+      );
+
+      console.log(`Retrieved ${result.rows.length} pending requests for group ${groupId}`);
+      
+      return {
+        group: {
+          id: groupId,
+          name: group.name
+        },
+        pendingRequests: result.rows,
+        count: result.rows.length
+      };
+    } catch (error) {
+      console.error(`Get pending requests error:`, {
+        groupId,
+        requesterId,
+        error: error.message
+      });
+      throw new Error(`Failed to get pending requests: ${error.message}`);
     }
   }
 }

@@ -72,6 +72,153 @@ export const joinGroup = async (req, res) => {
   }
 };
 
+export const requestToJoinGroup = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const userId = req.user.id; // Use the logged-in user's ID
+
+    const result = await Group.requestToJoin(gID, userId);
+
+    res.status(201).json({
+      success: true,
+      message: 'Join request submitted successfully. Waiting for approval from group owner.',
+      group: result.group,
+      member: result.member
+    });
+  } catch (error) {
+    console.error('Error requesting to join group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found' || error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'You are already a member of this group' || 
+        error.message === 'You are already the owner of this group' ||
+        error.message === 'You already have a pending join request for this group') {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process join request'
+    });
+  }
+};
+
+export const approvePendingMember = async (req, res) => {
+  try {
+    const { gID, userId } = req.params;
+    const approverId = req.user.id; // User performing the approval
+
+    // Validate userId parameter
+    const userIdToApprove = parseInt(userId);
+    if (isNaN(userIdToApprove)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    const result = await Group.approvePendingMember(gID, userIdToApprove, approverId);
+
+    res.json({
+      success: true,
+      message: `Join request approved successfully. ${result.member.username} is now a member of the group.`,
+      group: result.group,
+      member: result.member,
+      approvedBy: result.approvedBy
+    });
+  } catch (error) {
+    console.error('Error approving pending member:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found' || error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'No pending join request found for this user') {
+      return res.status(404).json({
+        success: false,
+        error: 'No pending join request found for this user'
+      });
+    }
+    
+    if (error.message === 'Only group owners or moderators can approve join requests') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only group owners or moderators can approve join requests'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to approve join request'
+    });
+  }
+};
+
+export const leaveFromGroup = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const userId = req.user.id; // Get user ID from authentication
+
+    const result = await Group.leaveGroup(gID, userId);
+
+    res.json({
+      success: true,
+      message: `You have successfully left the group "${result.group.name}".`,
+      group: result.group,
+      user: result.user
+    });
+  } catch (error) {
+    console.error('Error leaving group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'You are not a member of this group') {
+      return res.status(400).json({
+        success: false,
+        error: 'You are not a member of this group'
+      });
+    }
+    
+    if (error.message.includes('Group owners cannot leave their own group')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group owners cannot leave their own group. Please delete the group or transfer ownership first.'
+      });
+    }
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to leave group'
+    });
+  }
+};
+
 export const createGroup = async (req, res) => {
   try {
     const { name, description, visibility, poster_url, tags } = req.body;
@@ -142,18 +289,9 @@ export const createGroup = async (req, res) => {
 export const getGroupDetails = async (req, res) => {
   try {
     const { gID } = req.params;
+    const userId = req.user?.id || null; // Get user ID if authenticated, null if not
 
-    const group = await Group.getById(gID);
-    
-    // Check if user has access based on visibility
-    if (group.visibility !== 'public' && (!req.user || (req.user.id !== group.owner_id))) {
-      return res.status(403).json({
-        success: false,
-        error: group.visibility === 'private' ? 
-          'This is a private group. Only the owner can view it.' :
-          'This is a closed group. Contact support for access.'
-      });
-    }
+    const group = await Group.getById(gID, userId);
 
     res.json({
       success: true,
@@ -161,12 +299,28 @@ export const getGroupDetails = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting group details:', error);
+    
     if (error.message === 'Group not found') {
       return res.status(404).json({
         success: false,
         error: 'Group not found'
       });
     }
+    
+    if (error.message === 'Authentication required to view this private group') {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to view this private group'
+      });
+    }
+    
+    if (error.message === 'You are not a member of this private group and cannot view its details') {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not a member of this private group and cannot view its details'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: error.message
@@ -259,93 +413,6 @@ export const getGroupsByGenres = async (req, res) => {
   }
 };
 
-export const addMemberToGroup = async (req, res) => {
-  try {
-    const { gID } = req.params;
-    
-    // Check if req.body exists
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Request body is required. Make sure Content-Type is application/json and body format is raw JSON'
-      });
-    }
-    
-    const { userId, role } = req.body;
-    const ownerId = req.user.id; // Owner ID from authentication
-
-    // Validate required fields
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required'
-      });
-    }
-
-    // Validate userId is a number
-    const userIdToAdd = parseInt(userId);
-    if (isNaN(userIdToAdd)) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID must be a valid number'
-      });
-    }
-
-    // Validate role if provided
-    if (role && !['member', 'moderator'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Role must be "member" or "moderator"'
-      });
-    }
-
-    const member = await Group.addMember(gID, userIdToAdd, ownerId, role || 'member');
-
-    res.status(201).json({
-      success: true,
-      message: 'Member added successfully',
-      member
-    });
-  } catch (error) {
-    console.error('Error adding member to group:', error);
-    
-    // Handle specific error cases
-    if (error.message === 'Group not found') {
-      return res.status(404).json({
-        success: false,
-        error: 'Group not found'
-      });
-    }
-    
-    if (error.message === 'User to add not found') {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-    
-    if (error.message === 'Only the group owner can add members') {
-      return res.status(403).json({
-        success: false,
-        error: 'You do not have permission to add members to this group'
-      });
-    }
-    
-    if (error.message === 'User is already a member of this group' ||
-        error.message === 'Cannot add the group owner as a member') {
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add member'
-    });
-  }
-};
-
 export const removeMemberFromGroup = async (req, res) => {
   try {
     const { gID, userId } = req.params;
@@ -364,9 +431,7 @@ export const removeMemberFromGroup = async (req, res) => {
 
     // Customize response message based on who performed the action
     let message;
-    if (result.isSelfRemoval) {
-      message = 'You have left the group successfully';
-    } else if (result.isOwnerAction) {
+    if (result.isOwnerAction) {
       message = 'Member removed successfully by group owner';
     } else if (result.isModeratorAction) {
       message = 'Member removed successfully by group moderator';
@@ -380,8 +445,7 @@ export const removeMemberFromGroup = async (req, res) => {
         username: result.removedUser.username,
         role: result.removedUser.role
       },
-      actionType: result.isSelfRemoval ? 'self_removal' : 
-                  result.isOwnerAction ? 'owner_removal' : 'moderator_removal'
+      actionType: result.isOwnerAction ? 'owner_removal' : 'moderator_removal'
     });
   } catch (error) {
     console.error('Error removing member from group:', error);
@@ -401,11 +465,18 @@ export const removeMemberFromGroup = async (req, res) => {
       });
     }
     
-    if (error.message === 'You do not have permission to remove this member' ||
+    if (error.message === 'Only group owners and moderators can remove members' ||
         error.message === 'Moderators cannot remove other moderators') {
       return res.status(403).json({
         success: false,
         error: error.message
+      });
+    }
+    
+    if (error.message === 'Use the leave group endpoint to remove yourself from the group') {
+      return res.status(400).json({
+        success: false,
+        error: 'Use the leave group endpoint to remove yourself from the group'
       });
     }
     
@@ -419,6 +490,94 @@ export const removeMemberFromGroup = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to remove member'
+    });
+  }
+};
+
+export const updateMemberRole = async (req, res) => {
+  try {
+    const { gID, userId } = req.params;
+    const ownerId = req.user.id; // Owner performing the role update
+    const { role } = req.body;
+
+    // Validate userId parameter
+    const memberId = parseInt(userId);
+    if (isNaN(memberId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    // Validate role
+    if (!role || !['member', 'moderator'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be either "member" or "moderator"'
+      });
+    }
+
+    const result = await Group.updateMemberRole(gID, memberId, ownerId, role);
+
+    res.json({
+      success: true,
+      message: `Member role updated successfully from ${result.previousRole} to ${result.newRole}`,
+      member: result.member,
+      roleChange: {
+        from: result.previousRole,
+        to: result.newRole,
+        updatedBy: result.updatedBy
+      }
+    });
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'User is not a member of this group') {
+      return res.status(404).json({
+        success: false,
+        error: 'User is not a member of this group'
+      });
+    }
+    
+    if (error.message === 'Only the group owner can update member roles') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the group owner can update member roles'
+      });
+    }
+    
+    if (error.message === 'Cannot change the role of the group owner') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot change the role of the group owner'
+      });
+    }
+    
+    if (error.message.includes('User is already a')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'Invalid role. Must be "member" or "moderator"') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role. Must be "member" or "moderator"'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update member role'
     });
   }
 };
@@ -525,6 +684,97 @@ export const updateGroupDetails = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update group details'
+    });
+  }
+};
+
+export const getAllGroupThemes = async (req, res) => {
+  try {
+    const themes = await Group.getAllThemes();
+
+    res.json({
+      success: true,
+      count: themes.length,
+      themes
+    });
+  } catch (error) {
+    console.error('Error getting group themes:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get group themes'
+    });
+  }
+};
+
+export const getUserGroups = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get user ID from URL parameter
+
+    // Validate userId parameter
+    const targetUserId = parseInt(userId);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    const result = await Group.getUserGroups(targetUserId);
+
+    res.json({
+      success: true,
+      user_id: targetUserId,
+      summary: {
+        total: result.total,
+        owned: result.owned,
+        moderated: result.moderated,
+        member: result.member
+      },
+      groups: result.groups
+    });
+  } catch (error) {
+    console.error('Error getting user groups:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get user groups'
+    });
+  }
+};
+
+export const getAllPendingRequests = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const requesterId = req.user.id; // User requesting to see pending requests
+
+    const result = await Group.getAllPendingRequests(gID, requesterId);
+
+    res.json({
+      success: true,
+      group: result.group,
+      count: result.count,
+      pendingRequests: result.pendingRequests
+    });
+  } catch (error) {
+    console.error('Error getting pending requests:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'Only group owners and moderators can view pending requests') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only group owners and moderators can view pending requests'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get pending requests'
     });
   }
 };
