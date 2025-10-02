@@ -142,18 +142,9 @@ export const createGroup = async (req, res) => {
 export const getGroupDetails = async (req, res) => {
   try {
     const { gID } = req.params;
+    const userId = req.user?.id || null; // Get user ID if authenticated, null if not
 
-    const group = await Group.getById(gID);
-    
-    // Check if user has access based on visibility
-    if (group.visibility !== 'public' && (!req.user || (req.user.id !== group.owner_id))) {
-      return res.status(403).json({
-        success: false,
-        error: group.visibility === 'private' ? 
-          'This is a private group. Only the owner can view it.' :
-          'This is a closed group. Contact support for access.'
-      });
-    }
+    const group = await Group.getById(gID, userId);
 
     res.json({
       success: true,
@@ -161,12 +152,28 @@ export const getGroupDetails = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting group details:', error);
+    
     if (error.message === 'Group not found') {
       return res.status(404).json({
         success: false,
         error: 'Group not found'
       });
     }
+    
+    if (error.message === 'Authentication required to view this private group') {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to view this private group'
+      });
+    }
+    
+    if (error.message === 'You are not a member of this private group and cannot view its details') {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not a member of this private group and cannot view its details'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: error.message

@@ -87,9 +87,10 @@ class Group {
   /**
    * Get group details by ID
    * @param {number} gID Group ID
+   * @param {number|null} userId User ID requesting the group details (optional)
    * @returns {Promise<Object>} Group details
    */
-  static async getById(gID) {
+  static async getById(gID, userId = null) {
     try {      
       // Start a transaction to ensure consistent read
       await query('BEGIN');
@@ -120,12 +121,33 @@ class Group {
           throw new Error('Group not found');
         }
 
-        // Get group members
+        const group = groupResult.rows[0];
+
+        // Check access permissions for private groups
+        if (group.visibility === 'private') {
+          if (!userId) {
+            throw new Error('Authentication required to view this private group');
+          }
+
+          // Check if user is a member or owner of the private group
+          const memberCheck = await query(
+            'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
+            [gID, userId]
+          );
+
+          const isOwner = group.owner_id === userId;
+          const isMember = memberCheck.rows.length > 0;
+
+          if (!isOwner && !isMember) {
+            throw new Error('You are not a member of this private group and cannot view its details');
+          }
+        }
+
+        // Get group members (without email)
         const membersResult = await query(
           `SELECT 
             u.id,
             u.username,
-            u.email,
             gm.joined_at,
             gm.role
           FROM group_members gm
@@ -136,7 +158,6 @@ class Group {
         );
 
         // Combine group details with members
-        const group = groupResult.rows[0];
         group.members = membersResult.rows;
 
         await query('COMMIT');
