@@ -63,11 +63,12 @@ router.get('/user/:user_id/:type', optionalAuth, getUserFavorites);
 router.get('/group/:group_id', optionalAuth, getGroupFavorites);
 
 /**
- * @route GET /api/v1/favorites/status/:movie_id
- * @desc Check if movie is in user's favorites (all types)
+ * @route GET /api/v1/favorites/status/:movie_ids
+ * @desc Check if movie(s) are in user's favorites (all types)
  * @access Public (returns limited info for non-authenticated users)
- * @params movie_id: string
+ * @params movie_ids: string (single ID or comma-separated IDs, max 100)
+ * @example /status/550 or /status/550,551,552
  */
-router.get('/status/:movie_id', optionalAuth, checkFavoriteStatus);
+router.get('/status/:movie_ids', optionalAuth, checkFavoriteStatus);
 
 export default router;
