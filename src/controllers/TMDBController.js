@@ -30,7 +30,12 @@ export const getMovieDetails = async (req, res) => {
 
     // Save basic movie details to our database
     try {
-      await Movie.createFromTmdb(movie);
+      const savedMovie = await Movie.createFromTmdb(movie);
+      if (savedMovie) {
+        console.log('Movie saved to database:', savedMovie.id);
+      } else {
+        console.log('Movie skipped - missing required fields');
+      }
     } catch (dbError) {
       console.error('Error saving movie to database:', dbError);
       // Don't fail the request if database save fails
