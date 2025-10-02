@@ -649,3 +649,38 @@ export const getAllGroupThemes = async (req, res) => {
     });
   }
 };
+
+export const getUserGroups = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get user ID from URL parameter
+
+    // Validate userId parameter
+    const targetUserId = parseInt(userId);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    const result = await Group.getUserGroups(targetUserId);
+
+    res.json({
+      success: true,
+      user_id: targetUserId,
+      summary: {
+        total: result.total,
+        owned: result.owned,
+        moderated: result.moderated,
+        member: result.member
+      },
+      groups: result.groups
+    });
+  } catch (error) {
+    console.error('Error getting user groups:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get user groups'
+    });
+  }
+};

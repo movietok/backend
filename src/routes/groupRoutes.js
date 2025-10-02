@@ -10,6 +10,7 @@ import {
   approvePendingMember,
   getGroupsByGenres,
   getAllGroupThemes,
+  getUserGroups,
   removeMemberFromGroup,
   updateMemberRole,
   updateGroupDetails
@@ -29,6 +30,9 @@ router.get('/themes', getAllGroupThemes);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);
+
+// Get user's groups by user ID (ordered by role: owner, moderator, member)
+router.get('/user/:userId/groups', getUserGroups);
 
 // Create a new group
 router.post('/', createGroup);

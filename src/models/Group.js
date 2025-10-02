@@ -1111,6 +1111,93 @@ class Group {
       throw new Error(`Failed to get group themes: ${error.message}`);
     }
   }
+
+  /**
+   * Get all groups that a user belongs to, ordered by role
+   * @param {number} userId User ID
+   * @returns {Promise<Array>} Array of groups ordered by user's role (owner, moderator, member)
+   */
+  static async getUserGroups(userId) {
+    try {
+      // Get groups where user is owner
+      const ownerGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          'owner' as user_role,
+          (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.role != 'pending') as member_count
+        FROM groups g
+        WHERE g.owner_id = $1
+        ORDER BY g.created_at DESC`,
+        [userId]
+      );
+
+      // Get groups where user is moderator
+      const moderatorGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          gm.role as user_role,
+          gm.joined_at,
+          (SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.id AND gm2.role != 'pending') as member_count
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = $1 AND gm.role = 'moderator'
+        ORDER BY gm.joined_at DESC`,
+        [userId]
+      );
+
+      // Get groups where user is member
+      const memberGroups = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.poster_url,
+          g.created_at,
+          gm.role as user_role,
+          gm.joined_at,
+          (SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.id AND gm2.role != 'pending') as member_count
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = $1 AND gm.role = 'member'
+        ORDER BY gm.joined_at DESC`,
+        [userId]
+      );
+
+      // Combine all groups in the desired order
+      const allGroups = [
+        ...ownerGroups.rows,
+        ...moderatorGroups.rows,
+        ...memberGroups.rows
+      ];
+
+      console.log(`Retrieved ${allGroups.length} groups for user ${userId} (${ownerGroups.rows.length} owned, ${moderatorGroups.rows.length} moderated, ${memberGroups.rows.length} member)`);
+      
+      return {
+        total: allGroups.length,
+        owned: ownerGroups.rows.length,
+        moderated: moderatorGroups.rows.length,
+        member: memberGroups.rows.length,
+        groups: allGroups
+      };
+    } catch (error) {
+      console.error(`Get user groups error:`, {
+        userId,
+        error: error.message
+      });
+      throw new Error(`Failed to get user groups: ${error.message}`);
+    }
+  }
 }
 
 export default Group;
