@@ -14,14 +14,15 @@ import {
 
 const router = express.Router();
 
-// All group routes require authentication
-router.use(authenticateToken);
-
+// Public routes (no authentication required)
 // Search groups
 router.get('/search', searchGroups);
 
 // Get groups by genre tags
 router.get('/by-genres', getGroupsByGenres);
+
+// Protected routes (authentication required)
+router.use(authenticateToken);
 
 // Create a new group
 router.post('/', createGroup);
