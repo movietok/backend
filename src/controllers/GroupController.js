@@ -167,6 +167,58 @@ export const approvePendingMember = async (req, res) => {
   }
 };
 
+export const leaveFromGroup = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const userId = req.user.id; // Get user ID from authentication
+
+    const result = await Group.leaveGroup(gID, userId);
+
+    res.json({
+      success: true,
+      message: `You have successfully left the group "${result.group.name}".`,
+      group: result.group,
+      user: result.user
+    });
+  } catch (error) {
+    console.error('Error leaving group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'You are not a member of this group') {
+      return res.status(400).json({
+        success: false,
+        error: 'You are not a member of this group'
+      });
+    }
+    
+    if (error.message.includes('Group owners cannot leave their own group')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group owners cannot leave their own group. Please delete the group or transfer ownership first.'
+      });
+    }
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to leave group'
+    });
+  }
+};
+
 export const createGroup = async (req, res) => {
   try {
     const { name, description, visibility, poster_url, tags } = req.body;

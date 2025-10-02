@@ -688,6 +688,95 @@ class Group {
   }
 
   /**
+   * Leave a group (user removes themselves)
+   * @param {number} groupId Group ID
+   * @param {number} userId User ID leaving the group
+   * @returns {Promise<Object>} Leave confirmation
+   */
+  static async leaveGroup(groupId, userId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists
+        const groupCheck = await query(
+          'SELECT owner_id, name FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        const group = groupCheck.rows[0];
+
+        // Prevent owner from leaving their own group
+        if (userId === group.owner_id) {
+          throw new Error('Group owners cannot leave their own group. Please delete the group');
+        }
+
+        // Check if user is a member of the group
+        const memberCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+          throw new Error('You are not a member of this group');
+        }
+
+        const userRole = memberCheck.rows[0].role;
+
+        // Get user details before removal
+        const userDetails = await query(
+          'SELECT id, username FROM users WHERE id = $1',
+          [userId]
+        );
+
+        if (userDetails.rows.length === 0) {
+          throw new Error('User not found');
+        }
+
+        const user = userDetails.rows[0];
+
+        // Remove user from group
+        await query(
+          'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
+        );
+
+        await query('COMMIT');
+
+        console.log(`User ${userId} left group ${groupId} (was ${userRole})`);
+
+        return {
+          group: {
+            id: groupId,
+            name: group.name
+          },
+          user: {
+            id: user.id,
+            username: user.username,
+            previousRole: userRole
+          }
+        };
+
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Leave group error details:`, {
+        groupId,
+        userId,
+        error: error.message
+      });
+      throw new Error(`Failed to leave group: ${error.message}`);
+    }
+  }
+
+  /**
    * Remove a member from a group
    * @param {number} groupId Group ID
    * @param {number} userIdToRemove User ID to remove from the group
