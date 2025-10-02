@@ -12,6 +12,7 @@ import {
   getGroupsByGenres,
   getAllGroupThemes,
   getUserGroups,
+  getAllPendingRequests,
   removeMemberFromGroup,
   updateMemberRole,
   updateGroupDetails
@@ -52,6 +53,9 @@ router.post('/:gID/request-join', requestToJoinGroup);
 
 // Approve pending join request (owner or moderator only)
 router.put('/:gID/members/:userId/approve', approvePendingMember);
+
+// Get all pending join requests for a group (owner or moderator only)
+router.get('/:gID/pending-requests', getAllPendingRequests);
 
 // Leave group (user removes themselves)
 router.post('/:gID/leave', leaveFromGroup);

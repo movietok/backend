@@ -1290,6 +1290,72 @@ class Group {
       throw new Error(`Failed to get user groups: ${error.message}`);
     }
   }
+
+  /**
+   * Get all pending join requests for a group
+   * @param {number} groupId Group ID
+   * @param {number} requesterId User ID making the request (for authorization)
+   * @returns {Promise<Array>} Array of pending join requests
+   */
+  static async getAllPendingRequests(groupId, requesterId) {
+    try {
+      // Check if group exists
+      const groupCheck = await query(
+        'SELECT owner_id, name FROM groups WHERE id = $1',
+        [groupId]
+      );
+
+      if (groupCheck.rows.length === 0) {
+        throw new Error('Group not found');
+      }
+
+      const group = groupCheck.rows[0];
+
+      // Check if requester has permission (owner or moderator)
+      const requesterCheck = await query(
+        'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+        [groupId, requesterId]
+      );
+
+      const isOwner = group.owner_id === requesterId;
+      const isModerator = requesterCheck.rows.length > 0 && requesterCheck.rows[0].role === 'moderator';
+
+      if (!isOwner && !isModerator) {
+        throw new Error('Only group owners and moderators can view pending requests');
+      }
+
+      // Get all pending requests for the group
+      const result = await query(
+        `SELECT 
+          u.id,
+          u.username,
+          gm.joined_at as requested_at
+        FROM group_members gm
+        JOIN users u ON gm.user_id = u.id
+        WHERE gm.group_id = $1 AND gm.role = 'pending'
+        ORDER BY gm.joined_at ASC`,
+        [groupId]
+      );
+
+      console.log(`Retrieved ${result.rows.length} pending requests for group ${groupId}`);
+      
+      return {
+        group: {
+          id: groupId,
+          name: group.name
+        },
+        pendingRequests: result.rows,
+        count: result.rows.length
+      };
+    } catch (error) {
+      console.error(`Get pending requests error:`, {
+        groupId,
+        requesterId,
+        error: error.message
+      });
+      throw new Error(`Failed to get pending requests: ${error.message}`);
+    }
+  }
 }
 
 export default Group;

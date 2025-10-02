@@ -740,3 +740,41 @@ export const getUserGroups = async (req, res) => {
     });
   }
 };
+
+export const getAllPendingRequests = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const requesterId = req.user.id; // User requesting to see pending requests
+
+    const result = await Group.getAllPendingRequests(gID, requesterId);
+
+    res.json({
+      success: true,
+      group: result.group,
+      count: result.count,
+      pendingRequests: result.pendingRequests
+    });
+  } catch (error) {
+    console.error('Error getting pending requests:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'Only group owners and moderators can view pending requests') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only group owners and moderators can view pending requests'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get pending requests'
+    });
+  }
+};
