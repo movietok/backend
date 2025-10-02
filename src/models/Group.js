@@ -1091,6 +1091,26 @@ class Group {
       throw new Error(`Failed to update group details: ${error.message}`);
     }
   }
+
+  /**
+   * Get all group themes
+   * @returns {Promise<Array>} Array of all group themes
+   */
+  static async getAllThemes() {
+    try {
+      const result = await query(
+        'SELECT id, name, theme FROM group_themes ORDER BY name ASC'
+      );
+
+      console.log(`Retrieved ${result.rows.length} group themes`);
+      return result.rows;
+    } catch (error) {
+      console.error(`Get all themes error:`, {
+        error: error.message
+      });
+      throw new Error(`Failed to get group themes: ${error.message}`);
+    }
+  }
 }
 
 export default Group;

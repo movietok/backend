@@ -9,6 +9,7 @@ import {
   requestToJoinGroup,
   approvePendingMember,
   getGroupsByGenres,
+  getAllGroupThemes,
   removeMemberFromGroup,
   updateMemberRole,
   updateGroupDetails
@@ -22,6 +23,9 @@ router.get('/search', searchGroups);
 
 // Get groups by genre tags
 router.get('/by-genres', getGroupsByGenres);
+
+// Get all group themes
+router.get('/themes', getAllGroupThemes);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);

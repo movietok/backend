@@ -631,3 +631,21 @@ export const updateGroupDetails = async (req, res) => {
     });
   }
 };
+
+export const getAllGroupThemes = async (req, res) => {
+  try {
+    const themes = await Group.getAllThemes();
+
+    res.json({
+      success: true,
+      count: themes.length,
+      themes
+    });
+  } catch (error) {
+    console.error('Error getting group themes:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get group themes'
+    });
+  }
+};
