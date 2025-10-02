@@ -112,6 +112,61 @@ export const requestToJoinGroup = async (req, res) => {
   }
 };
 
+export const approvePendingMember = async (req, res) => {
+  try {
+    const { gID, userId } = req.params;
+    const approverId = req.user.id; // User performing the approval
+
+    // Validate userId parameter
+    const userIdToApprove = parseInt(userId);
+    if (isNaN(userIdToApprove)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    const result = await Group.approvePendingMember(gID, userIdToApprove, approverId);
+
+    res.json({
+      success: true,
+      message: `Join request approved successfully. ${result.member.username} is now a member of the group.`,
+      group: result.group,
+      member: result.member,
+      approvedBy: result.approvedBy
+    });
+  } catch (error) {
+    console.error('Error approving pending member:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found' || error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'No pending join request found for this user') {
+      return res.status(404).json({
+        success: false,
+        error: 'No pending join request found for this user'
+      });
+    }
+    
+    if (error.message === 'Only group owners or moderators can approve join requests') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only group owners or moderators can approve join requests'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to approve join request'
+    });
+  }
+};
+
 export const createGroup = async (req, res) => {
   try {
     const { name, description, visibility, poster_url, tags } = req.body;

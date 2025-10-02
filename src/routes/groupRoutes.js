@@ -7,6 +7,7 @@ import {
   searchGroups,
   joinGroup,
   requestToJoinGroup,
+  approvePendingMember,
   getGroupsByGenres,
   removeMemberFromGroup,
   updateMemberRole,
@@ -39,6 +40,9 @@ router.post('/:gID/join', joinGroup);
 
 // Request to join group (creates pending membership)
 router.post('/:gID/request-join', requestToJoinGroup);
+
+// Approve pending join request (owner or moderator only)
+router.put('/:gID/members/:userId/approve', approvePendingMember);
 
 // Remove member from group (owner, moderator, or self)
 router.delete('/:gID/members/:userId', removeMemberFromGroup);

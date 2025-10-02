@@ -587,6 +587,107 @@ class Group {
   }
 
   /**
+   * Approve a pending join request (owner or moderator only)
+   * @param {number} groupId Group ID
+   * @param {number} userIdToApprove User ID whose request to approve
+   * @param {number} approverId ID of user performing the approval (owner or moderator)
+   * @returns {Promise<Object>} Approval result
+   */
+  static async approvePendingMember(groupId, userIdToApprove, approverId) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists
+        const groupCheck = await query(
+          'SELECT owner_id, name FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        const group = groupCheck.rows[0];
+
+        // Check if approver has permission (owner or moderator)
+        const approverCheck = await query(
+          'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, approverId]
+        );
+
+        const isOwner = group.owner_id === approverId;
+        const isModerator = approverCheck.rows.length > 0 && approverCheck.rows[0].role === 'moderator';
+
+        if (!isOwner && !isModerator) {
+          throw new Error('Only group owners or moderators can approve join requests');
+        }
+
+        // Check if there's a pending request from this user
+        const pendingCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2 AND role = $3',
+          [groupId, userIdToApprove, 'pending']
+        );
+
+        if (pendingCheck.rows.length === 0) {
+          throw new Error('No pending join request found for this user');
+        }
+
+        // Get user details
+        const userCheck = await query(
+          'SELECT id, username FROM users WHERE id = $1',
+          [userIdToApprove]
+        );
+
+        if (userCheck.rows.length === 0) {
+          throw new Error('User not found');
+        }
+
+        const user = userCheck.rows[0];
+
+        // Update role from pending to member
+        await query(
+          'UPDATE group_members SET role = $1 WHERE group_id = $2 AND user_id = $3',
+          ['member', groupId, userIdToApprove]
+        );
+
+        await query('COMMIT');
+
+        console.log(`${isOwner ? 'Owner' : 'Moderator'} ${approverId} approved join request for user ${userIdToApprove} in group ${groupId}`);
+        
+        return {
+          group: {
+            id: groupId,
+            name: group.name
+          },
+          member: {
+            id: user.id,
+            username: user.username,
+            role: 'member'
+          },
+          approvedBy: {
+            id: approverId,
+            role: isOwner ? 'owner' : 'moderator'
+          }
+        };
+
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Approve pending member error details:`, {
+        groupId,
+        userIdToApprove,
+        approverId,
+        error: error.message
+      });
+      throw new Error(`Failed to approve join request: ${error.message}`);
+    }
+  }
+
+  /**
    * Remove a member from a group
    * @param {number} groupId Group ID
    * @param {number} userIdToRemove User ID to remove from the group
