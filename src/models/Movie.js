@@ -7,6 +7,7 @@ class Movie {
     this.release_year = data.release_year;
     this.imdb_rating = data.imdb_rating;
     this.tmdb_id = data.tmdb_id;
+    this.poster_url = data.poster_url;
   }
 
   // CREATE - Create a new movie manually (rarely used as movies typically come from TMDB)
@@ -214,6 +215,7 @@ class Movie {
         tmdb_id: tmdbData.id,
         original_title: tmdbData.originalTitle,
         release_year: releaseYear,
+        poster_url: tmdbData.posterPath,
         full_tmdb_data: tmdbData // This shows all available TMDB data
       });
 
@@ -223,13 +225,15 @@ class Movie {
           id,
           original_title, 
           tmdb_id, 
-          release_year
-        ) VALUES ($1, $2, $3, $4) RETURNING *`,
+          release_year,
+          poster_url
+        ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [
           nextId,
           tmdbData.originalTitle,
           tmdbData.id,
-          releaseYear
+          releaseYear,
+          tmdbData.posterPath
         ]
       );
 
