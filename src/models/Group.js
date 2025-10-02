@@ -108,7 +108,7 @@ class Group {
               g.created_at,
               g.owner_id,
               u.username AS owner_name,
-              COUNT(gm.user_id) AS member_count
+              COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count
           FROM groups g
           JOIN users u ON g.owner_id = u.id
           LEFT JOIN group_members gm ON g.id = gm.group_id
@@ -269,7 +269,7 @@ class Group {
           g.created_at,
           g.owner_id,
           u.username AS owner_name,
-          COUNT(gm.user_id) AS member_count,
+          COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
           similarity(LOWER(g.name), LOWER($1)) AS name_similarity
         FROM groups g
         JOIN users u ON g.owner_id = u.id
@@ -402,7 +402,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             COALESCE(array_agg(DISTINCT t.genre_id) FILTER (WHERE t.genre_id IS NOT NULL), '{}') AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
@@ -438,7 +438,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
@@ -464,7 +464,7 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(gm.user_id) AS member_count,
+            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
