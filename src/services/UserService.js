@@ -100,7 +100,11 @@ class UserService {
         }
 
         const user = await User.findById(userId);
-        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
         if (!validPassword) {
           throw new Error('Current password is incorrect');
         }
