@@ -431,9 +431,7 @@ export const removeMemberFromGroup = async (req, res) => {
 
     // Customize response message based on who performed the action
     let message;
-    if (result.isSelfRemoval) {
-      message = 'You have left the group successfully';
-    } else if (result.isOwnerAction) {
+    if (result.isOwnerAction) {
       message = 'Member removed successfully by group owner';
     } else if (result.isModeratorAction) {
       message = 'Member removed successfully by group moderator';
@@ -447,8 +445,7 @@ export const removeMemberFromGroup = async (req, res) => {
         username: result.removedUser.username,
         role: result.removedUser.role
       },
-      actionType: result.isSelfRemoval ? 'self_removal' : 
-                  result.isOwnerAction ? 'owner_removal' : 'moderator_removal'
+      actionType: result.isOwnerAction ? 'owner_removal' : 'moderator_removal'
     });
   } catch (error) {
     console.error('Error removing member from group:', error);
@@ -468,11 +465,18 @@ export const removeMemberFromGroup = async (req, res) => {
       });
     }
     
-    if (error.message === 'You do not have permission to remove this member' ||
+    if (error.message === 'Only group owners and moderators can remove members' ||
         error.message === 'Moderators cannot remove other moderators') {
       return res.status(403).json({
         success: false,
         error: error.message
+      });
+    }
+    
+    if (error.message === 'Use the leave group endpoint to remove yourself from the group') {
+      return res.status(400).json({
+        success: false,
+        error: 'Use the leave group endpoint to remove yourself from the group'
       });
     }
     

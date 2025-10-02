@@ -817,14 +817,13 @@ class Group {
           [groupId, requestingUserId]
         );
 
-        // Authorization logic
+        // Authorization logic - only owners and moderators can remove members
         const isOwner = requestingUserId === groupOwnerId;
         const isModerator = requestingUserRole.rows.length > 0 && requestingUserRole.rows[0].role === 'moderator';
-        const isSelfRemoval = requestingUserId === userIdToRemove;
 
         // Check if the requesting user has permission to remove the member
-        if (!isOwner && !isModerator && !isSelfRemoval) {
-          throw new Error('You do not have permission to remove this member');
+        if (!isOwner && !isModerator) {
+          throw new Error('Only group owners and moderators can remove members');
         }
 
         // Prevent removing the group owner
@@ -832,9 +831,14 @@ class Group {
           throw new Error('Cannot remove the group owner');
         }
 
+        // Prevent users from removing themselves (they should use the leave endpoint)
+        if (requestingUserId === userIdToRemove) {
+          throw new Error('Use the leave group endpoint to remove yourself from the group');
+        }
+
         // Additional rule: moderators cannot remove other moderators (only owners can)
         const targetUserRole = memberCheck.rows[0].role;
-        if (!isOwner && isModerator && targetUserRole === 'moderator' && !isSelfRemoval) {
+        if (!isOwner && isModerator && targetUserRole === 'moderator') {
           throw new Error('Moderators cannot remove other moderators');
         }
 
@@ -864,8 +868,7 @@ class Group {
           removedUser: userDetails.rows[0],
           removedBy: requestingUserId,
           isOwnerAction: isOwner,
-          isModeratorAction: isModerator,
-          isSelfRemoval: isSelfRemoval
+          isModeratorAction: isModerator
         };
       } catch (error) {
         await query('ROLLBACK');

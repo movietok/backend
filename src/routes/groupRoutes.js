@@ -56,7 +56,7 @@ router.put('/:gID/members/:userId/approve', approvePendingMember);
 // Leave group (user removes themselves)
 router.post('/:gID/leave', leaveFromGroup);
 
-// Remove member from group (owner, moderator, or self)
+// Remove member from group (owner or moderator only)
 router.delete('/:gID/members/:userId', removeMemberFromGroup);
 
 // Update member role (owner only)
