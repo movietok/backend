@@ -196,6 +196,15 @@ class Movie {
   // Create or update movie from TMDB data
   static async createFromTmdb(tmdbData) {
     try {
+      // Validate required fields - skip if null/undefined
+      if (!tmdbData.originalTitle || !tmdbData.id) {
+        console.log('Skipping movie save - missing required fields:', {
+          originalTitle: tmdbData.originalTitle,
+          tmdb_id: tmdbData.id
+        });
+        return null;
+      }
+
       // First check if movie already exists by TMDB ID
       const existingMovie = await Movie.findByTmdbId(tmdbData.id);
       if (existingMovie) {
@@ -248,9 +257,24 @@ class Movie {
     try {
       const processedMovies = [];
       const errors = [];
+      const skipped = [];
 
       for (const movieData of moviesArray) {
         try {
+          // Validate required fields - skip if null/undefined
+          if (!movieData.originalTitle || !movieData.id) {
+            skipped.push({
+              movieId: movieData.id,
+              title: movieData.originalTitle,
+              reason: 'Missing required fields (original_title or tmdb_id)'
+            });
+            console.log('Skipping movie - missing required fields:', {
+              originalTitle: movieData.originalTitle,
+              tmdb_id: movieData.id
+            });
+            continue;
+          }
+
           // Check if movie already exists by TMDB ID
           const existingMovie = await Movie.findByTmdbId(movieData.id);
           if (existingMovie) {
@@ -305,11 +329,13 @@ class Movie {
       return {
         processed: processedMovies,
         errors: errors,
+        skipped: skipped,
         stats: {
           total: moviesArray.length,
           created: processedMovies.filter(m => m.status === 'created').length,
           existing: processedMovies.filter(m => m.status === 'existing').length,
-          failed: errors.length
+          failed: errors.length,
+          skipped: skipped.length
         }
       };
     } catch (error) {
