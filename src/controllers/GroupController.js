@@ -72,6 +72,46 @@ export const joinGroup = async (req, res) => {
   }
 };
 
+export const requestToJoinGroup = async (req, res) => {
+  try {
+    const { gID } = req.params;
+    const userId = req.user.id; // Use the logged-in user's ID
+
+    const result = await Group.requestToJoin(gID, userId);
+
+    res.status(201).json({
+      success: true,
+      message: 'Join request submitted successfully. Waiting for approval from group owner.',
+      group: result.group,
+      member: result.member
+    });
+  } catch (error) {
+    console.error('Error requesting to join group:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found' || error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'You are already a member of this group' || 
+        error.message === 'You are already the owner of this group' ||
+        error.message === 'You already have a pending join request for this group') {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process join request'
+    });
+  }
+};
+
 export const createGroup = async (req, res) => {
   try {
     const { name, description, visibility, poster_url, tags } = req.body;
@@ -262,93 +302,6 @@ export const getGroupsByGenres = async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
-    });
-  }
-};
-
-export const addMemberToGroup = async (req, res) => {
-  try {
-    const { gID } = req.params;
-    
-    // Check if req.body exists
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Request body is required. Make sure Content-Type is application/json and body format is raw JSON'
-      });
-    }
-    
-    const { userId, role } = req.body;
-    const ownerId = req.user.id; // Owner ID from authentication
-
-    // Validate required fields
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required'
-      });
-    }
-
-    // Validate userId is a number
-    const userIdToAdd = parseInt(userId);
-    if (isNaN(userIdToAdd)) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID must be a valid number'
-      });
-    }
-
-    // Validate role if provided
-    if (role && !['member', 'moderator'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Role must be "member" or "moderator"'
-      });
-    }
-
-    const member = await Group.addMember(gID, userIdToAdd, ownerId, role || 'member');
-
-    res.status(201).json({
-      success: true,
-      message: 'Member added successfully',
-      member
-    });
-  } catch (error) {
-    console.error('Error adding member to group:', error);
-    
-    // Handle specific error cases
-    if (error.message === 'Group not found') {
-      return res.status(404).json({
-        success: false,
-        error: 'Group not found'
-      });
-    }
-    
-    if (error.message === 'User to add not found') {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-    
-    if (error.message === 'Only the group owner can add members') {
-      return res.status(403).json({
-        success: false,
-        error: 'You do not have permission to add members to this group'
-      });
-    }
-    
-    if (error.message === 'User is already a member of this group' ||
-        error.message === 'Cannot add the group owner as a member') {
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add member'
     });
   }
 };

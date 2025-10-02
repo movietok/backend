@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 -- ENUM TYPES
 -- ==========================================
 CREATE TYPE account_role AS ENUM ('user', 'moderator', 'admin', 'banned');
-CREATE TYPE group_member_role AS ENUM ('member', 'moderator', 'owner');
+CREATE TYPE group_member_role AS ENUM ('member', 'moderator', 'owner', 'pending');
 CREATE TYPE report_target AS ENUM ('user', 'movie', 'review', 'comment', 'group');
 CREATE TYPE interaction_type AS ENUM ('like', 'dislike');
 CREATE TYPE interaction_target AS ENUM ('review', 'movie', 'comment');

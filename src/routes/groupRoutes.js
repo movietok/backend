@@ -6,8 +6,8 @@ import {
   deleteGroup,
   searchGroups,
   joinGroup,
+  requestToJoinGroup,
   getGroupsByGenres,
-  addMemberToGroup,
   removeMemberFromGroup,
   updateMemberRole,
   updateGroupDetails
@@ -37,8 +37,8 @@ router.put('/:gID', updateGroupDetails);
 // Join group
 router.post('/:gID/join', joinGroup);
 
-// Add member to group (owner only)
-router.post('/:gID/members', addMemberToGroup);
+// Request to join group (creates pending membership)
+router.post('/:gID/request-join', requestToJoinGroup);
 
 // Remove member from group (owner, moderator, or self)
 router.delete('/:gID/members/:userId', removeMemberFromGroup);

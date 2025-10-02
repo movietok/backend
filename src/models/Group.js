@@ -493,22 +493,20 @@ class Group {
   }
 
   /**
-   * Add a member to a group (owner only)
+   * Request to join a group (creates pending membership)
    * @param {number} groupId Group ID
-   * @param {number} userIdToAdd User ID to add to the group
-   * @param {number} ownerId Owner's user ID (for verification)
-   * @param {string} role Role to assign (default: 'member')
-   * @returns {Promise<Object>} Added member details
+   * @param {number} userId User ID requesting to join
+   * @returns {Promise<Object>} Join request details
    */
-  static async addMember(groupId, userIdToAdd, ownerId, role = 'member') {
+  static async requestToJoin(groupId, userId) {
     try {
       // Start a transaction
       await query('BEGIN');
 
       try {
-        // Check if group exists and verify ownership
+        // Check if group exists
         const groupCheck = await query(
-          'SELECT owner_id, visibility FROM groups WHERE id = $1',
+          'SELECT id, name, owner_id, visibility FROM groups WHERE id = $1',
           [groupId]
         );
 
@@ -516,78 +514,75 @@ class Group {
           throw new Error('Group not found');
         }
 
-        if (groupCheck.rows[0].owner_id !== ownerId) {
-          throw new Error('Only the group owner can add members');
-        }
+        const group = groupCheck.rows[0];
 
-        // Check if the user to add exists
+        // Check if user exists
         const userCheck = await query(
           'SELECT id, username FROM users WHERE id = $1',
-          [userIdToAdd]
+          [userId]
         );
 
         if (userCheck.rows.length === 0) {
-          throw new Error('User to add not found');
+          throw new Error('User not found');
         }
 
-        // Prevent adding the owner as a member (they're already the owner)
-        if (userIdToAdd === ownerId) {
-          throw new Error('Cannot add the group owner as a member');
+        const user = userCheck.rows[0];
+
+        // Prevent owner from requesting to join their own group
+        if (userId === group.owner_id) {
+          throw new Error('You are already the owner of this group');
         }
 
-        // Check if user is already a member
+        // Check if user is already a member or has pending request
         const memberCheck = await query(
-          'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
-          [groupId, userIdToAdd]
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, userId]
         );
 
         if (memberCheck.rows.length > 0) {
-          throw new Error('User is already a member of this group');
+          const currentRole = memberCheck.rows[0].role;
+          if (currentRole === 'pending') {
+            throw new Error('You already have a pending join request for this group');
+          } else {
+            throw new Error('You are already a member of this group');
+          }
         }
 
-        // Validate role
-        if (!['member', 'moderator'].includes(role)) {
-          throw new Error('Invalid role. Must be "member" or "moderator"');
-        }
-
-        // Add user to group
+        // Add user to group with pending role
         await query(
           `INSERT INTO group_members (group_id, user_id, role, joined_at)
-           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
-          [groupId, userIdToAdd, role]
-        );
-
-        // Get the added member's details
-        const memberDetails = await query(
-          `SELECT 
-            u.id,
-            u.username,
-            u.email,
-            gm.joined_at,
-            gm.role
-          FROM group_members gm
-          JOIN users u ON gm.user_id = u.id
-          WHERE gm.group_id = $1 AND gm.user_id = $2`,
-          [groupId, userIdToAdd]
+           VALUES ($1, $2, 'pending', CURRENT_TIMESTAMP)`,
+          [groupId, userId]
         );
 
         await query('COMMIT');
 
-        console.log(`Owner ${ownerId} added user ${userIdToAdd} to group ${groupId} with role ${role}`);
-        return memberDetails.rows[0];
+        console.log(`User ${userId} created join request for group ${groupId}`);
+        
+        return {
+          group: {
+            id: group.id,
+            name: group.name
+          },
+          member: {
+            id: user.id,
+            username: user.username,
+            role: 'pending',
+            joined_at: new Date().toISOString()
+          }
+        };
+
       } catch (error) {
         await query('ROLLBACK');
         throw error;
       }
     } catch (error) {
-      console.error(`Add member error details:`, {
+      console.error(`Request to join error details:`, {
         groupId,
-        userIdToAdd,
-        ownerId,
-        role,
+        userId,
         error: error.message
       });
-      throw new Error(`Failed to add member: ${error.message}`);
+      throw new Error(`Failed to process join request: ${error.message}`);
     }
   }
 
