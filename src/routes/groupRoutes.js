@@ -9,6 +9,7 @@ import {
   getGroupsByGenres,
   addMemberToGroup,
   removeMemberFromGroup,
+  updateMemberRole,
   updateGroupDetails
 } from '../controllers/GroupController.js';
 
@@ -41,6 +42,9 @@ router.post('/:gID/members', addMemberToGroup);
 
 // Remove member from group (owner, moderator, or self)
 router.delete('/:gID/members/:userId', removeMemberFromGroup);
+
+// Update member role (owner only)
+router.put('/:gID/members/:userId/role', updateMemberRole);
 
 // Delete a group
 router.delete('/:gID', deleteGroup);

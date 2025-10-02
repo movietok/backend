@@ -698,6 +698,106 @@ class Group {
   }
 
   /**
+   * Update member role in a group (owner only)
+   * @param {number} groupId Group ID
+   * @param {number} memberId Member's user ID whose role to update
+   * @param {number} ownerId Owner's user ID (for verification)
+   * @param {string} newRole New role to assign ('member' or 'moderator')
+   * @returns {Promise<Object>} Updated member details
+   */
+  static async updateMemberRole(groupId, memberId, ownerId, newRole) {
+    try {
+      // Start a transaction
+      await query('BEGIN');
+
+      try {
+        // Check if group exists and verify ownership
+        const groupCheck = await query(
+          'SELECT owner_id FROM groups WHERE id = $1',
+          [groupId]
+        );
+
+        if (groupCheck.rows.length === 0) {
+          throw new Error('Group not found');
+        }
+
+        if (groupCheck.rows[0].owner_id !== ownerId) {
+          throw new Error('Only the group owner can update member roles');
+        }
+
+        // Validate new role
+        if (!['member', 'moderator'].includes(newRole)) {
+          throw new Error('Invalid role. Must be "member" or "moderator"');
+        }
+
+        // Check if the user is a member of the group
+        const memberCheck = await query(
+          'SELECT user_id, role FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, memberId]
+        );
+
+        if (memberCheck.rows.length === 0) {
+          throw new Error('User is not a member of this group');
+        }
+
+        // Prevent changing the owner's role
+        if (memberId === ownerId) {
+          throw new Error('Cannot change the role of the group owner');
+        }
+
+        const currentRole = memberCheck.rows[0].role;
+
+        // Check if role is already the same
+        if (currentRole === newRole) {
+          throw new Error(`User is already a ${newRole}`);
+        }
+
+        // Update the member's role
+        await query(
+          'UPDATE group_members SET role = $1 WHERE group_id = $2 AND user_id = $3',
+          [newRole, groupId, memberId]
+        );
+
+        // Get updated member details
+        const updatedMember = await query(
+          `SELECT 
+            u.id,
+            u.username,
+            gm.joined_at,
+            gm.role
+          FROM group_members gm
+          JOIN users u ON gm.user_id = u.id
+          WHERE gm.group_id = $1 AND gm.user_id = $2`,
+          [groupId, memberId]
+        );
+
+        await query('COMMIT');
+
+        console.log(`Owner ${ownerId} updated role of user ${memberId} from ${currentRole} to ${newRole} in group ${groupId}`);
+        
+        return {
+          member: updatedMember.rows[0],
+          previousRole: currentRole,
+          newRole: newRole,
+          updatedBy: ownerId
+        };
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Update member role error details:`, {
+        groupId,
+        memberId,
+        ownerId,
+        newRole,
+        error: error.message
+      });
+      throw new Error(`Failed to update member role: ${error.message}`);
+    }
+  }
+
+  /**
    * Update group details
    * @param {number} gID Group ID
    * @param {number} ownerId Owner's user ID (for verification)

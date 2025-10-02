@@ -430,6 +430,94 @@ export const removeMemberFromGroup = async (req, res) => {
   }
 };
 
+export const updateMemberRole = async (req, res) => {
+  try {
+    const { gID, userId } = req.params;
+    const ownerId = req.user.id; // Owner performing the role update
+    const { role } = req.body;
+
+    // Validate userId parameter
+    const memberId = parseInt(userId);
+    if (isNaN(memberId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID must be a valid number'
+      });
+    }
+
+    // Validate role
+    if (!role || !['member', 'moderator'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be either "member" or "moderator"'
+      });
+    }
+
+    const result = await Group.updateMemberRole(gID, memberId, ownerId, role);
+
+    res.json({
+      success: true,
+      message: `Member role updated successfully from ${result.previousRole} to ${result.newRole}`,
+      member: result.member,
+      roleChange: {
+        from: result.previousRole,
+        to: result.newRole,
+        updatedBy: result.updatedBy
+      }
+    });
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    
+    // Handle specific error cases
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'Group not found'
+      });
+    }
+    
+    if (error.message === 'User is not a member of this group') {
+      return res.status(404).json({
+        success: false,
+        error: 'User is not a member of this group'
+      });
+    }
+    
+    if (error.message === 'Only the group owner can update member roles') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the group owner can update member roles'
+      });
+    }
+    
+    if (error.message === 'Cannot change the role of the group owner') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot change the role of the group owner'
+      });
+    }
+    
+    if (error.message.includes('User is already a')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
+    if (error.message === 'Invalid role. Must be "member" or "moderator"') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role. Must be "member" or "moderator"'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update member role'
+    });
+  }
+};
+
 export const updateGroupDetails = async (req, res) => {
   try {
     const { gID } = req.params;
