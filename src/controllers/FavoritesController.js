@@ -424,57 +424,111 @@ export const getGroupFavorites = async (req, res) => {
 };
 
 /**
- * Check if movie is in user's favorites
+ * Check if movie(s) are in user's favorites
+ * Supports both single ID and comma-separated multiple IDs in URL
  */
 export const checkFavoriteStatus = async (req, res) => {
   try {
-    const { movie_id } = req.params;
+    const { movie_ids } = req.params;
     const user_id = req.user?.id;
 
-    if (!movie_id) {
+    if (!movie_ids) {
       return res.status(400).json({
         success: false,
-        error: 'movie_id is required'
+        error: 'movie_ids parameter is required'
       });
     }
 
+    // Parse comma-separated movie IDs
+    const movieIdsArray = movie_ids.split(',')
+      .map(id => id.trim())
+      .filter(id => id.length > 0);
+
+    if (movieIdsArray.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid movie IDs provided'
+      });
+    }
+
+    if (movieIdsArray.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Maximum 100 movie IDs allowed per request'
+      });
+    }
+
+    // If user is not authenticated, return empty results for all movies
     if (!user_id) {
-      return res.json({
-        success: true,
-        data: {
-          watchlist: false,
-          favorites: false,
-          groups: []
-        }
-      });
+      if (movieIdsArray.length === 1) {
+        return res.json({
+          success: true,
+          data: {
+            watchlist: false,
+            favorites: false,
+            groups: []
+          },
+          count: 1
+        });
+      } else {
+        const emptyResult = movieIdsArray.reduce((acc, movieId) => {
+          acc[movieId] = {
+            watchlist: false,
+            favorites: false,
+            groups: []
+          };
+          return acc;
+        }, {});
+
+        return res.json({
+          success: true,
+          data: emptyResult,
+          count: movieIdsArray.length
+        });
+      }
     }
 
-    // Check personal favorites
-    const personalFavorites = await pool.query(`
-      SELECT type FROM favorites 
-      WHERE user_id = $1 AND movie_id = $2 AND type IN (1, 2)
-    `, [user_id, movie_id]);
+    // Create placeholders for SQL IN clause
+    const placeholders = movieIdsArray.map((_, index) => `$${index + 2}`).join(', ');
 
-    const watchlist = personalFavorites.rows.some(row => row.type === 1);
-    const favorites = personalFavorites.rows.some(row => row.type === 2);
+    // Check personal favorites for all movies
+    const personalFavorites = await pool.query(`
+      SELECT movie_id, type FROM favorites 
+      WHERE user_id = $1 AND movie_id IN (${placeholders}) AND type IN (1, 2)
+    `, [user_id, ...movieIdsArray]);
 
     // Check group favorites where user is member or owner
     const groupFavorites = await pool.query(`
-      SELECT DISTINCT g.id, g.name
+      SELECT DISTINCT f.movie_id, g.id, g.name
       FROM favorites f
       JOIN groups g ON g.owner_id = f.user_id
       LEFT JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
-      WHERE f.movie_id = $2 AND f.type = 3 
+      WHERE f.movie_id IN (${placeholders}) AND f.type = 3 
       AND (g.owner_id = $1 OR gm.user_id = $1 OR g.visibility = 'public')
-    `, [user_id, movie_id]);
+    `, [user_id, ...movieIdsArray]);
 
+    // Build result object
+    const result = {};
+    
+    movieIdsArray.forEach(movieId => {
+      const moviePersonalFavorites = personalFavorites.rows.filter(row => row.movie_id === movieId);
+      const movieGroupFavorites = groupFavorites.rows.filter(row => row.movie_id === movieId);
+
+      result[movieId] = {
+        watchlist: moviePersonalFavorites.some(row => row.type === 1),
+        favorites: moviePersonalFavorites.some(row => row.type === 2),
+        groups: movieGroupFavorites.map(row => ({
+          id: row.id,
+          name: row.name
+        }))
+      };
+    });
+
+    // Return single object for single movie, or full object for multiple movies
     res.json({
       success: true,
-      data: {
-        watchlist,
-        favorites,
-        groups: groupFavorites.rows
-      }
+      data: movieIdsArray.length === 1 ? result[movieIdsArray[0]] : result,
+      count: movieIdsArray.length
     });
 
   } catch (error) {
