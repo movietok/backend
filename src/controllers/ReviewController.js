@@ -2,7 +2,7 @@ import { ReviewService } from '../services/ReviewService.js';
 
 export const createReview = async (req, res) => {
   try {
-    const { movieId, rating, content } = req.body;
+    const { movieId, rating, comment } = req.body;
     const userId = req.user.id;
 
     // Validate required fields
@@ -25,7 +25,7 @@ export const createReview = async (req, res) => {
       userId,
       movieId,
       rating,
-      content: content || null
+      comment: comment || null
     });
 
     res.status(201).json({
@@ -148,7 +148,7 @@ export const getUserReviews = async (req, res) => {
 export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const { rating, content } = req.body;
+    const { rating, comment } = req.body;
     const userId = req.user.id;
 
     // Check if review exists and belongs to user
@@ -178,7 +178,7 @@ export const updateReview = async (req, res) => {
 
     const updatedReview = await ReviewService.updateReview(id, {
       rating,
-      content: content
+      comment
     });
 
     res.json({
