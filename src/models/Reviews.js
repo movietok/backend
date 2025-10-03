@@ -41,7 +41,7 @@ class Review {
          JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.id = $1
-         GROUP BY r.id, u.username`,
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, r.deleted_at, u.username`,
         [id]
       );
       return result.rows[0] ? new Review(result.rows[0]) : null;
@@ -75,7 +75,7 @@ class Review {
          JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.movie_id = $1
-         GROUP BY r.id, u.username
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, r.deleted_at, u.username
          ORDER BY r.created_at DESC`,
         [movieId]
       );
@@ -97,7 +97,7 @@ class Review {
          JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.user_id = $1
-         GROUP BY r.id, u.username
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, r.deleted_at, u.username
          ORDER BY r.created_at DESC`,
         [userId]
       );
