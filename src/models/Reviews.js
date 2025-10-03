@@ -5,6 +5,7 @@ class Review {
     this.id = data.id;
     this.movie_id = data.movie_id;
     this.user_id = data.user_id;
+    this.username = data.username;
     this.content = data.content;
     this.rating = data.rating;
     this.likes = data.likes || 0;
@@ -33,12 +34,14 @@ class Review {
     try {
       const result = await query(
         `SELECT r.*, 
+         u.username,
          COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
+         JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.id = $1
-         GROUP BY r.id`,
+         GROUP BY r.id, u.username`,
         [id]
       );
       return result.rows[0] ? new Review(result.rows[0]) : null;
@@ -65,12 +68,14 @@ class Review {
     try {
       const result = await query(
         `SELECT r.*, 
+         u.username,
          COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
+         JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.movie_id = $1
-         GROUP BY r.id
+         GROUP BY r.id, u.username
          ORDER BY r.created_at DESC`,
         [movieId]
       );
@@ -85,12 +90,14 @@ class Review {
     try {
       const result = await query(
         `SELECT r.*, 
+         u.username,
          COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
+         JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.user_id = $1
-         GROUP BY r.id
+         GROUP BY r.id, u.username
          ORDER BY r.created_at DESC`,
         [userId]
       );
