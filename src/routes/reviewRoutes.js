@@ -5,6 +5,7 @@ import {
   getReview,
   getMovieReviews,
   getUserReviews,
+  getRecentReviews,
   updateReview,
   deleteReview,
   addReviewInteraction
@@ -23,6 +24,9 @@ router.get('/movie/:movieId', getMovieReviews);
 
 // Get all reviews by a user
 router.get('/user/:userId', getUserReviews);
+
+// Get recent reviews (top 20 most recent)
+router.get('/recent', getRecentReviews);
 
 // Update a review (requires authentication)
 router.put('/:id', authenticateToken, updateReview);

@@ -31,6 +31,19 @@ export class ReviewService {
     }
   }
 
+  // Get recent reviews (top 20 most recent)
+  static async getRecentReviews(limit = 20) {
+    try {
+      const reviews = await Review.findRecent(limit);
+      return {
+        reviews: reviews,
+        total: reviews.length
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get all reviews for a movie with pagination and stats, Maybe we will refactor this later and change calculation from 0 to 5. 
   static async getMovieReviews(movieId, options = {}) {
     try {

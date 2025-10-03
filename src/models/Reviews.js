@@ -107,6 +107,28 @@ class Review {
     }
   }
 
+  // READ - Get recent reviews (top 20 most recent)
+  static async findRecent(limit = 20) {
+    try {
+      const result = await query(
+        `SELECT r.*, 
+         u.username,
+         COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
+         COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
+         FROM reviews r
+         JOIN users u ON u.id = r.user_id
+         LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, r.deleted_at, u.username
+         ORDER BY r.created_at DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return result.rows.map(row => new Review(row));
+    } catch (error) {
+      throw new Error(`Error finding recent reviews: ${error.message}`);
+    }
+  }
+
   // UPDATE - Update a review
   static async update(id, updateData) {
     try {

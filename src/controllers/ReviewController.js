@@ -145,6 +145,39 @@ export const getUserReviews = async (req, res) => {
   }
 };
 
+export const getRecentReviews = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    
+    // Validate limit parameter
+    const reviewLimit = parseInt(limit);
+    if (isNaN(reviewLimit) || reviewLimit < 1 || reviewLimit > 50) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Limit must be a number between 1 and 50'
+      });
+    }
+
+    const result = await ReviewService.getRecentReviews(reviewLimit);
+
+    res.json({
+      status: 'success',
+      data: {
+        reviews: result.reviews,
+        total: result.total,
+        limit: reviewLimit
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting recent reviews:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+};
+
 export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
