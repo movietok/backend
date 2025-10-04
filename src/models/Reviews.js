@@ -183,6 +183,44 @@ class Review {
       throw new Error(`Error adding interaction to review: ${error.message}`);
     }
   }
+
+  // Get reviews by group members for group favorite movies
+  static async findByGroupFavorites(groupId) {
+    try {
+      const result = await query(
+        `SELECT r.*, 
+         u.username,
+         COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
+         COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
+         FROM reviews r
+         JOIN users u ON u.id = r.user_id
+         LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
+         WHERE r.movie_id IN (
+           -- Get movies that are in group favorites
+           SELECT f.tmdb_id 
+           FROM favorites f 
+           JOIN groups g ON g.owner_id = f.user_id 
+           WHERE g.id = $1 AND f.type = 3
+         )
+         AND r.user_id IN (
+           -- Get group members (including owner)
+           SELECT gm.user_id 
+           FROM group_members gm 
+           WHERE gm.group_id = $1
+           UNION
+           SELECT g.owner_id 
+           FROM groups g 
+           WHERE g.id = $1
+         )
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, r.deleted_at, u.username
+         ORDER BY r.created_at DESC`,
+        [groupId]
+      );
+      return result.rows.map(row => new Review(row));
+    } catch (error) {
+      throw new Error(`Error finding group reviews: ${error.message}`);
+    }
+  }
 }
 
 export default Review;

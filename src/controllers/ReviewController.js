@@ -316,3 +316,30 @@ export const addReviewInteraction = async (req, res) => {
     });
   }
 };
+
+export const getGroupReviews = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Group ID is required'
+      });
+    }
+
+    const reviews = await ReviewService.getGroupReviews(groupId);
+
+    res.json({
+      status: 'success',
+      data: { reviews }
+    });
+
+  } catch (error) {
+    console.error('Error getting group reviews:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+};

@@ -132,4 +132,13 @@ export class ReviewService {
       throw error;
     }
   }
+
+  // Get reviews by group members for group favorite movies
+  static async getGroupReviews(groupId) {
+    try {
+      return await Review.findByGroupFavorites(groupId);
+    } catch (error) {
+      throw error;
+    }
+  }
 }
