@@ -203,8 +203,9 @@ class TMDBService {
         return;
       }
 
-      // Generate unique ID for the movie (using TMDB ID as base)
-      const movieId = `tmdb_${movie.id}`;
+      // Use Finnkino ID as primary key if available, otherwise use TMDB ID with prefix
+      // This prioritizes Finnkino ID since it's the main integration point
+      const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
       
       // Ensure we have valid data
       const originalTitle = movie.original_title || 'Unknown';
