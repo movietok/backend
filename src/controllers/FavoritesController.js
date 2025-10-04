@@ -108,12 +108,12 @@ export const addToFavorites = async (req, res) => {
 
     // Add to favorites table using tmdb_id directly
     const result = await pool.query(`
-      INSERT INTO favorites (user_id, tmdb_id, type, group_id, created_at)
-      VALUES ($1, $2, $3, $4, NOW())
+      INSERT INTO favorites (user_id, created_at, type, group_id, tmdb_id)
+      VALUES ($1, NOW(), $2, $3, $4)
       ON CONFLICT (user_id, tmdb_id, type, COALESCE(group_id, 0)) 
       DO NOTHING
       RETURNING *
-    `, [user_id, movie_id, type, type === FAVORITE_TYPES.GROUP_FAVORITES ? group_id : null]);
+    `, [user_id, type, type === FAVORITE_TYPES.GROUP_FAVORITES ? group_id : null, movie_id]);
 
     // Determine success message based on type
     let message = '';
