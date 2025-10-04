@@ -15,7 +15,7 @@ export class ReviewService {
         movie_id: reviewData.movieId,
         user_id: reviewData.userId,
         rating: reviewData.rating,
-        content: reviewData.content
+        content: reviewData.comment
       });
     } catch (error) {
       throw error;
@@ -107,7 +107,7 @@ export class ReviewService {
     try {
       const updateFields = {};
       if (updateData.rating !== undefined) updateFields.rating = updateData.rating;
-      if (updateData.content !== undefined) updateFields.content = updateData.content;
+      if (updateData.comment !== undefined) updateFields.content = updateData.comment;
       
       return await Review.update(reviewId, updateFields);
     } catch (error) {

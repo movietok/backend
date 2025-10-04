@@ -1,3 +1,5 @@
+import pool from '../config/database.js';
+
 class TMDBService {
   constructor() {
     this.baseUrl = 'https://api.themoviedb.org/3';
@@ -92,9 +94,22 @@ class TMDBService {
    * @param {number} year - The release year to filter by
    * @returns {Promise<Object>} - Search results
    */
-  async searchByOriginalTitleAndYear(originalTitle, year) {
+  async searchByOriginalTitleAndYear(originalTitle, year, finnkinoId = null) {
     try {
-      // First search with the title
+      // If Finnkino ID is provided, check database first
+      if (finnkinoId) {
+        const dbMovie = await this.getMovieByFinnkinoId(finnkinoId);
+        if (dbMovie) {
+          console.log(`Found movie in database with f_id: ${finnkinoId}`);
+          return {
+            results: [dbMovie],
+            totalResults: 1,
+            source: 'database'
+          };
+        }
+      }
+
+      // Search TMDB if not found in database
       const data = await this.fetchTMDBData('/search/movie', {
         query: originalTitle,
         primary_release_year: year.toString(),
@@ -106,12 +121,128 @@ class TMDBService {
         movie.original_title.toLowerCase() === originalTitle.toLowerCase()
       );
 
+      // Save to database with Finnkino ID if provided (using raw TMDB data)
+      if (finnkinoId && exactMatches.length > 0) {
+        // Use raw TMDB data for saving
+        const movieToSave = {
+          id: exactMatches[0].id,
+          original_title: exactMatches[0].original_title,
+          release_year: exactMatches[0].release_date ? 
+            parseInt(exactMatches[0].release_date.split('-')[0]) : null,
+          poster_path: exactMatches[0].poster_path
+        };
+        await this.saveMovieWithFinnkinoId(movieToSave, finnkinoId);
+      }
+
+      const formattedResults = this.formatMovieList(exactMatches);
+
       return {
-        results: this.formatMovieList(exactMatches),
-        totalResults: exactMatches.length
+        results: formattedResults,
+        totalResults: exactMatches.length,
+        source: 'tmdb'
       };
     } catch (error) {
       throw new Error(`Failed to search by original title and year: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get movie from database by Finnkino ID
+   * @private
+   */
+  async getMovieByFinnkinoId(finnkinoId) {
+    try {
+      const result = await pool.query(`
+        SELECT 
+          id,
+          original_title,
+          release_year,
+          tmdb_id,
+          poster_url,
+          f_id
+        FROM movies 
+        WHERE f_id = $1
+      `, [finnkinoId]);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const movie = result.rows[0];
+      
+      // Format to match formatMovieList output (camelCase)
+      return {
+        id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
+        title: movie.original_title, // Using original_title as title
+        originalTitle: movie.original_title,
+        releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
+        overview: null, // Not stored in database
+        posterPath: movie.poster_url, // Already contains full URL from database
+        voteAverage: null, // Not stored in database
+        f_id: movie.f_id,
+        fromDatabase: true
+      };
+    } catch (error) {
+      console.error('Error fetching movie by Finnkino ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save movie to database with Finnkino ID
+   * @private
+   */
+  async saveMovieWithFinnkinoId(movie, finnkinoId) {
+    try {
+      // Validate required fields
+      if (!movie || !movie.id || !movie.original_title) {
+        console.error('Cannot save movie: missing required fields', { 
+          id: movie?.id, 
+          title: movie?.original_title 
+        });
+        return;
+      }
+
+      // Use Finnkino ID as primary key if available, otherwise use TMDB ID with prefix
+      // This prioritizes Finnkino ID since it's the main integration point
+      const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
+      
+      // Ensure we have valid data
+      const originalTitle = movie.original_title || 'Unknown';
+      const releaseYear = movie.release_year || null;
+      // Store full poster URL, not just the path
+      const posterUrl = movie.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        : null;
+
+      await pool.query(`
+        INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id) 
+        DO UPDATE SET 
+          f_id = COALESCE(EXCLUDED.f_id, movies.f_id),
+          original_title = COALESCE(EXCLUDED.original_title, movies.original_title),
+          release_year = COALESCE(EXCLUDED.release_year, movies.release_year),
+          tmdb_id = COALESCE(EXCLUDED.tmdb_id, movies.tmdb_id),
+          poster_url = COALESCE(EXCLUDED.poster_url, movies.poster_url)
+        WHERE movies.f_id IS NULL OR movies.f_id != EXCLUDED.f_id
+      `, [
+        movieId,
+        originalTitle,
+        releaseYear,
+        movie.id,
+        posterUrl,
+        finnkinoId
+      ]);
+
+      console.log(`Saved movie to database: ${originalTitle} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
+    } catch (error) {
+      // If there's a unique constraint violation on f_id, just log it
+      if (error.code === '23505') {
+        console.log(`Movie with f_id ${finnkinoId} or tmdb_id ${movie?.id} already exists in database`);
+      } else {
+        console.error('Error saving movie with Finnkino ID:', error);
+      }
     }
   }
 
