@@ -24,7 +24,7 @@ router.post('/', authenticateToken, addToFavorites);
 
 /**
  * @route DELETE /api/v1/favorites/:movie_id/:type
- * @desc Remove movie from personal favorites
+ * @desc Remove movie from personal favorites & watchlist
  * @access Private
  * @params movie_id: string, type: number
  */
