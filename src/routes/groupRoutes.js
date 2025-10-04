@@ -30,6 +30,9 @@ router.get('/by-genres', getGroupsByGenres);
 // Get all group themes
 router.get('/themes', getAllGroupThemes);
 
+// Get group details (public access)
+router.get('/:gID', getGroupDetails);
+
 // Protected routes (authentication required)
 router.use(authenticateToken);
 
@@ -38,9 +41,6 @@ router.get('/user/:userId/groups', getUserGroups);
 
 // Create a new group
 router.post('/', createGroup);
-
-// Get group details
-router.get('/:gID', getGroupDetails);
 
 // Update group details (owner only)
 router.put('/:gID', updateGroupDetails);
