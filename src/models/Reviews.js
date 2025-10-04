@@ -195,9 +195,9 @@ class Review {
          FROM reviews r
          JOIN users u ON u.id = r.user_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
-         WHERE r.movie_id IN (
+         WHERE r.movie_id::text IN (
            -- Get movies that are in group favorites
-           SELECT f.tmdb_id 
+           SELECT f.tmdb_id::text 
            FROM favorites f 
            JOIN groups g ON g.owner_id = f.user_id 
            WHERE g.id = $1 AND f.type = 3
