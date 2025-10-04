@@ -222,7 +222,7 @@ export const removeFromFavorites = async (req, res) => {
       // Remove from favorites
       const result = await pool.query(`
         DELETE FROM favorites 
-        WHERE user_id = $1 AND movie_id = $2 AND type = $3
+        WHERE user_id = $1 AND tmdb_id = $2 AND type = $3
         RETURNING *
       `, [target_user_id, movie_id, typeInt]);
 
@@ -248,7 +248,7 @@ export const removeFromFavorites = async (req, res) => {
 
       const result = await pool.query(`
         DELETE FROM favorites 
-        WHERE user_id = $1 AND movie_id = $2 AND type = $3
+        WHERE user_id = $1 AND tmdb_id = $2 AND type = $3
         RETURNING *
       `, [target_user_id, movie_id, typeInt]);
 
@@ -321,14 +321,13 @@ export const getUserFavorites = async (req, res) => {
     // Get favorites with movie details
     const result = await pool.query(`
       SELECT 
-        f.movie_id,
+        f.tmdb_id,
         f.created_at,
         f.type,
         m.original_title,
-        m.tmdb_id,
         m.release_year
       FROM favorites f
-      LEFT JOIN movies m ON m.id = f.movie_id
+      LEFT JOIN movies m ON m.tmdb_id = f.tmdb_id
       WHERE f.user_id = $1 AND f.type = $2
       ORDER BY f.created_at DESC
     `, [user_id, typeInt]);
@@ -411,14 +410,13 @@ export const getGroupFavorites = async (req, res) => {
     // Get group favorites
     const result = await pool.query(`
       SELECT 
-        f.movie_id,
+        f.tmdb_id,
         f.created_at,
         f.type,
         m.original_title,
-        m.tmdb_id,
         m.release_year
       FROM favorites f
-      LEFT JOIN movies m ON m.id = f.movie_id
+      LEFT JOIN movies m ON m.tmdb_id = f.tmdb_id
       WHERE f.user_id = $1 AND f.type = $2
       ORDER BY f.created_at DESC
     `, [group.owner_id, FAVORITE_TYPES.GROUP_FAVORITES]);
@@ -518,17 +516,17 @@ export const checkFavoriteStatus = async (req, res) => {
 
     // Check personal favorites for all movies
     const personalFavorites = await pool.query(`
-      SELECT movie_id, type FROM favorites 
-      WHERE user_id = $1 AND movie_id IN (${placeholders}) AND type IN (1, 2)
+      SELECT tmdb_id, type FROM favorites 
+      WHERE user_id = $1 AND tmdb_id IN (${placeholders}) AND type IN (1, 2)
     `, [user_id, ...movieIdsArray]);
 
     // Check group favorites where user is member or owner
     const groupFavorites = await pool.query(`
-      SELECT DISTINCT f.movie_id, g.id, g.name
+      SELECT DISTINCT f.tmdb_id, g.id, g.name
       FROM favorites f
       JOIN groups g ON g.owner_id = f.user_id
       LEFT JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
-      WHERE f.movie_id IN (${placeholders}) AND f.type = 3 
+      WHERE f.tmdb_id IN (${placeholders}) AND f.type = 3 
       AND (g.owner_id = $1 OR gm.user_id = $1 OR g.visibility = 'public')
     `, [user_id, ...movieIdsArray]);
 
@@ -536,8 +534,8 @@ export const checkFavoriteStatus = async (req, res) => {
     const result = {};
     
     movieIdsArray.forEach(movieId => {
-      const moviePersonalFavorites = personalFavorites.rows.filter(row => row.movie_id === movieId);
-      const movieGroupFavorites = groupFavorites.rows.filter(row => row.movie_id === movieId);
+      const moviePersonalFavorites = personalFavorites.rows.filter(row => row.tmdb_id === movieId);
+      const movieGroupFavorites = groupFavorites.rows.filter(row => row.tmdb_id === movieId);
 
       result[movieId] = {
         watchlist: moviePersonalFavorites.some(row => row.type === 1),
