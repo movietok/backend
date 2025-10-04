@@ -177,7 +177,7 @@ class TMDBService {
         originalTitle: movie.original_title,
         releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
         overview: null, // Not stored in database
-        posterPath: movie.poster_url ? `https://image.tmdb.org/t/p/w500${movie.poster_url}` : null,
+        posterPath: movie.poster_url, // Already contains full URL from database
         voteAverage: null, // Not stored in database
         f_id: movie.f_id,
         fromDatabase: true
@@ -210,7 +210,10 @@ class TMDBService {
       // Ensure we have valid data
       const originalTitle = movie.original_title || 'Unknown';
       const releaseYear = movie.release_year || null;
-      const posterUrl = movie.poster_path || null;
+      // Store full poster URL, not just the path
+      const posterUrl = movie.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        : null;
 
       await pool.query(`
         INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
