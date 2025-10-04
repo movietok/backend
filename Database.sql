@@ -70,8 +70,7 @@ CREATE TABLE IF NOT EXISTS movies (
     release_year 		INTEGER,
     imdb_rating 		NUMERIC(3,1),
     tmdb_id 			INTEGER UNIQUE,
-    poster_url 			TEXT,                      -- Added for TMDB poster images
-    f_id 				INTEGER UNIQUE             -- Finnkino ID for matching with Finnkino API
+    poster_url 			TEXT                       -- Added for TMDB poster images
 );
 
 CREATE TABLE IF NOT EXISTS reviews (

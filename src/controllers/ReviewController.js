@@ -1,23 +1,8 @@
 import { ReviewService } from '../services/ReviewService.js';
 
-// Helper function to add ratio to review objects
-const addRatioToReview = (review) => {
-  const likes = parseInt(review.likes) || 0;
-  const dislikes = parseInt(review.dislikes) || 0;
-  return {
-    ...review,
-    ratio: likes - dislikes
-  };
-};
-
-// Helper function to add ratio to array of reviews
-const addRatioToReviews = (reviews) => {
-  return reviews.map(addRatioToReview);
-};
-
 export const createReview = async (req, res) => {
   try {
-    const { movieId, rating, comment } = req.body;
+    const { movieId, rating, content } = req.body;
     const userId = req.user.id;
 
     // Validate required fields
@@ -40,12 +25,12 @@ export const createReview = async (req, res) => {
       userId,
       movieId,
       rating,
-      content: content
+      content
     });
 
     res.status(201).json({
       status: 'success',
-      data: { review: addRatioToReview(review) }
+      data: { review }
     });
 
   } catch (error) {
@@ -79,7 +64,7 @@ export const getReview = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { review: addRatioToReview(review) }
+      data: { review }
     });
 
   } catch (error) {
@@ -106,7 +91,7 @@ export const getMovieReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: addRatioToReviews(result.reviews),
+        reviews: result.reviews,
         pagination: {
           total: result.total,
           limit: parseInt(limit),
@@ -141,7 +126,7 @@ export const getUserReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: addRatioToReviews(result.reviews),
+        reviews: result.reviews,
         pagination: {
           total: result.total,
           limit: parseInt(limit),
@@ -178,7 +163,7 @@ export const getRecentReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: addRatioToReviews(result.reviews),
+        reviews: result.reviews,
         total: result.total,
         limit: reviewLimit
       }
@@ -196,7 +181,7 @@ export const getRecentReviews = async (req, res) => {
 export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const { rating, comment } = req.body;
+    const { rating, content } = req.body;
     const userId = req.user.id;
 
     // Check if review exists and belongs to user
@@ -226,12 +211,12 @@ export const updateReview = async (req, res) => {
 
     const updatedReview = await ReviewService.updateReview(id, {
       rating,
-      comment
+      content
     });
 
     res.json({
       status: 'success',
-      data: { review: addRatioToReview(updatedReview) }
+      data: { review: updatedReview }
     });
 
   } catch (error) {
@@ -320,9 +305,7 @@ export const addReviewInteraction = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { 
-        interaction: addRatioToReview(interaction)
-      }
+      data: { interaction }
     });
 
   } catch (error) {
