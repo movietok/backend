@@ -18,13 +18,11 @@ class Review {
   static async create(reviewData) {
     try {
       const { movie_id, user_id, content, rating } = reviewData;
-      console.log('Creating review with data:', { movie_id, user_id, content, rating });
       const result = await query(
         `INSERT INTO reviews (movie_id, user_id, content, rating) 
          VALUES ($1, $2, $3, $4) RETURNING *`,
         [movie_id, user_id, content, rating]
       );
-      console.log('Created review result:', result.rows[0]);
       return new Review(result.rows[0]);
     } catch (error) {
       throw new Error(`Error creating review: ${error.message}`);
