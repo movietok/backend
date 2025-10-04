@@ -77,7 +77,7 @@ class UserController {
   // PUT /api/users/profile - Päivitä käyttäjän profiili (suojattu)
   static async updateProfile(req, res) {
     try {
-      const allowedFields = ['username', 'email', 'currentPassword', 'newPassword'];
+      const allowedFields = ['username', 'email', 'currentPassword', 'newPassword', 'user_bio'];
       const updateData = {};
 
       // Ota vain sallitut kentät
@@ -188,7 +188,7 @@ class UserController {
         });
       }
 
-      const allowedFields = ['username', 'email'];
+      const allowedFields = ['username', 'email', 'user_bio'];
       const updateData = {};
 
       // Ota vain sallitut kentät
@@ -201,7 +201,7 @@ class UserController {
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({
           error: 'No valid fields to update',
-          message: 'Please provide valid fields to update (username, email)'
+          message: 'Please provide valid fields to update (username, email, user_bio)'
         });
       }
 
