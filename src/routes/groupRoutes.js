@@ -58,7 +58,7 @@ router.put('/:gID/members/:userId/approve', approvePendingMember);
 router.get('/:gID/pending-requests', getAllPendingRequests);
 
 // Leave group (user removes themselves)
-router.post('/:gID/leave', leaveFromGroup);
+router.delete('/:gID/leave', leaveFromGroup);
 
 // Remove member from group (owner or moderator only)
 router.delete('/:gID/members/:userId', removeMemberFromGroup);
