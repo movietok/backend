@@ -351,7 +351,8 @@ export const getUserFavorites = async (req, res) => {
         f.created_at,
         f.type,
         m.original_title,
-        m.release_year
+        m.release_year,
+        m.poster_url
       FROM favorites f
       LEFT JOIN movies m ON m.tmdb_id = f.tmdb_id
       WHERE f.user_id = $1 AND f.type = $2
@@ -440,7 +441,8 @@ export const getGroupFavorites = async (req, res) => {
         f.created_at,
         f.type,
         m.original_title,
-        m.release_year
+        m.release_year,
+        m.poster_url
       FROM favorites f
       LEFT JOIN movies m ON m.tmdb_id = f.tmdb_id
       WHERE f.user_id = $1 AND f.type = $2
