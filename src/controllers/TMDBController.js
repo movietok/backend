@@ -100,7 +100,7 @@ export const discoverMovies = async (req, res) => {
 
 export const getMoviesByTitleAndYear = async (req, res) => {
   try {
-    const { originalTitle, year } = req.query;
+    const { originalTitle, year, f_id } = req.query;
 
     // Validate required parameters
     if (!originalTitle || !year) {
@@ -119,7 +119,16 @@ export const getMoviesByTitleAndYear = async (req, res) => {
       });
     }
 
-    const results = await TMDBService.searchByOriginalTitleAndYear(originalTitle, yearNum);
+    // Parse f_id if provided
+    const finnkinoId = f_id ? parseInt(f_id) : null;
+
+    // Search with Finnkino ID support
+    const results = await TMDBService.searchByOriginalTitleAndYear(
+      originalTitle, 
+      yearNum, 
+      finnkinoId
+    );
+    
     res.json({
       success: true,
       ...results
