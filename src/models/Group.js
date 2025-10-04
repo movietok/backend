@@ -123,26 +123,6 @@ class Group {
 
         const group = groupResult.rows[0];
 
-        // Check access permissions for private groups
-        if (group.visibility === 'private') {
-          if (!userId) {
-            throw new Error('Authentication required to view this private group');
-          }
-
-          // Check if user is a member or owner of the private group
-          const memberCheck = await query(
-            'SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = $2',
-            [gID, userId]
-          );
-
-          const isOwner = group.owner_id === userId;
-          const isMember = memberCheck.rows.length > 0;
-
-          if (!isOwner && !isMember) {
-            throw new Error('You are not a member of this private group and cannot view its details');
-          }
-        }
-
         // Get group members (without email)
         const membersResult = await query(
           `SELECT 
