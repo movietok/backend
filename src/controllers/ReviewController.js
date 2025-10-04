@@ -1,5 +1,20 @@
 import { ReviewService } from '../services/ReviewService.js';
 
+// Helper function to add ratio to review objects
+const addRatioToReview = (review) => {
+  const likes = parseInt(review.likes) || 0;
+  const dislikes = parseInt(review.dislikes) || 0;
+  return {
+    ...review,
+    ratio: likes - dislikes
+  };
+};
+
+// Helper function to add ratio to array of reviews
+const addRatioToReviews = (reviews) => {
+  return reviews.map(addRatioToReview);
+};
+
 export const createReview = async (req, res) => {
   try {
     const { movieId, rating, comment } = req.body;
@@ -30,7 +45,7 @@ export const createReview = async (req, res) => {
 
     res.status(201).json({
       status: 'success',
-      data: { review }
+      data: { review: addRatioToReview(review) }
     });
 
   } catch (error) {
@@ -64,7 +79,7 @@ export const getReview = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { review }
+      data: { review: addRatioToReview(review) }
     });
 
   } catch (error) {
@@ -91,7 +106,7 @@ export const getMovieReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: result.reviews,
+        reviews: addRatioToReviews(result.reviews),
         pagination: {
           total: result.total,
           limit: parseInt(limit),
@@ -126,7 +141,7 @@ export const getUserReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: result.reviews,
+        reviews: addRatioToReviews(result.reviews),
         pagination: {
           total: result.total,
           limit: parseInt(limit),
@@ -163,7 +178,7 @@ export const getRecentReviews = async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        reviews: result.reviews,
+        reviews: addRatioToReviews(result.reviews),
         total: result.total,
         limit: reviewLimit
       }
@@ -216,7 +231,7 @@ export const updateReview = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { review: updatedReview }
+      data: { review: addRatioToReview(updatedReview) }
     });
 
   } catch (error) {
@@ -305,7 +320,9 @@ export const addReviewInteraction = async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { interaction }
+      data: { 
+        interaction: addRatioToReview(interaction)
+      }
     });
 
   } catch (error) {
