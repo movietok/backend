@@ -6,6 +6,7 @@ import {
   getMovieReviews,
   getUserReviews,
   getRecentReviews,
+  getGroupReviews,
   updateReview,
   deleteReview,
   addReviewInteraction
@@ -27,6 +28,9 @@ router.get('/movie/:movieId', getMovieReviews);
 
 // Get all reviews by a user
 router.get('/user/:userId', getUserReviews);
+
+// Get all reviews by group members for group favorite movies
+router.get('/group/:groupId', getGroupReviews);
 
 // Update a review (requires authentication)
 router.put('/:id', authenticateToken, updateReview);
