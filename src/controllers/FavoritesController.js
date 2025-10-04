@@ -31,16 +31,17 @@ export const addToFavorites = async (req, res) => {
       });
     }
 
-    // For watchlist and personal favorites, user must be authenticated
-    if ((type === FAVORITE_TYPES.WATCHLIST || type === FAVORITE_TYPES.FAVORITES) && !user_id) {
+    // Authentication required for all types
+    if (!user_id) {
       return res.status(401).json({
         success: false,
-        error: 'Authentication required for personal lists'
+        error: 'Authentication required'
       });
     }
 
-    // For group favorites, validate group_id and permissions
+    // Type-specific validation and permissions
     if (type === FAVORITE_TYPES.GROUP_FAVORITES) {
+      // Group favorites require group_id
       if (!group_id) {
         return res.status(400).json({
           success: false,
@@ -48,65 +49,89 @@ export const addToFavorites = async (req, res) => {
         });
       }
 
-      if (!user_id) {
-        return res.status(401).json({
-          success: false,
-          error: 'Authentication required for group favorites'
-        });
-      }
-
-      // Check if user is group member or owner
-      const memberCheck = await pool.query(`
-        SELECT gm.role, g.owner_id 
-        FROM group_members gm
-        JOIN groups g ON g.id = gm.group_id
-        WHERE gm.group_id = $1 AND gm.user_id = $2
+      // Check if user is owner or moderator of the group
+      const groupCheck = await pool.query(`
+        SELECT g.owner_id, gm.role
+        FROM groups g
+        LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $2
+        WHERE g.id = $1
       `, [group_id, user_id]);
 
-      const isOwner = await pool.query(`
-        SELECT id FROM groups WHERE id = $1 AND owner_id = $2
-      `, [group_id, user_id]);
-
-      if (memberCheck.rows.length === 0 && isOwner.rows.length === 0) {
-        return res.status(403).json({
-          success: false,
-          error: 'You must be a group member to add movies to group favorites'
-        });
-      }
-    }
-
-    // Ensure movie exists in movies table
-    const movieExists = await pool.query('SELECT id FROM movies WHERE id = $1', [movie_id]);
-    if (movieExists.rows.length === 0) {
-      // Create movie entry if it doesn't exist
-      await pool.query('INSERT INTO movies (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [movie_id]);
-    }
-
-    // For group favorites, use group owner's user_id in the favorites table
-    let target_user_id = user_id;
-    if (type === FAVORITE_TYPES.GROUP_FAVORITES) {
-      const groupOwner = await pool.query('SELECT owner_id FROM groups WHERE id = $1', [group_id]);
-      if (groupOwner.rows.length === 0) {
+      if (groupCheck.rows.length === 0) {
         return res.status(404).json({
           success: false,
           error: 'Group not found'
         });
       }
-      target_user_id = groupOwner.rows[0].owner_id;
+
+      const group = groupCheck.rows[0];
+      const isOwner = group.owner_id === user_id;
+      const isModerator = group.role === 'moderator';
+
+      if (!isOwner && !isModerator) {
+        return res.status(403).json({
+          success: false,
+          error: 'Only group owners and moderators can add movies to group favorites'
+        });
+      }
+    } else {
+      // For watchlist (type 1) and personal favorites (type 2), group_id should be null
+      if (group_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'group_id should not be provided for personal watchlist or favorites'
+        });
+      }
     }
 
-    // Add to favorites
+    // Check if movie exists in our database by tmdb_id
+    const movieExists = await pool.query('SELECT id FROM movies WHERE tmdb_id = $1', [movie_id]);
+    
+    if (movieExists.rows.length === 0) {
+      // Movie doesn't exist, fetch it from TMDB using getMovieDetailsById
+      try {
+        const TMDBService = await import('../services/TMDBService.js');
+        const tmdbService = new TMDBService.default();
+        const movieDetails = await tmdbService.getMovieById(movie_id);
+        
+        // Save movie to database using existing Movie model
+        const Movie = await import('../models/Movie.js');
+        await Movie.default.createFromTmdb(movieDetails);
+      } catch (tmdbError) {
+        console.error('Error fetching movie from TMDB:', tmdbError);
+        return res.status(404).json({
+          success: false,
+          error: 'Movie not found in TMDB database'
+        });
+      }
+    }
+
+    // Add to favorites table using tmdb_id directly
     const result = await pool.query(`
-      INSERT INTO favorites (user_id, movie_id, type, created_at)
-      VALUES ($1, $2, $3, NOW())
-      ON CONFLICT (user_id, movie_id) 
-      DO UPDATE SET type = $3, created_at = NOW()
+      INSERT INTO favorites (user_id, tmdb_id, type, group_id, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (user_id, tmdb_id, type, COALESCE(group_id, 0)) 
+      DO NOTHING
       RETURNING *
-    `, [target_user_id, movie_id, type]);
+    `, [user_id, movie_id, type, type === FAVORITE_TYPES.GROUP_FAVORITES ? group_id : null]);
+
+    // Determine success message based on type
+    let message = '';
+    switch (type) {
+      case FAVORITE_TYPES.WATCHLIST:
+        message = 'Movie added to watchlist successfully';
+        break;
+      case FAVORITE_TYPES.FAVORITES:
+        message = 'Movie added to favorites successfully';
+        break;
+      case FAVORITE_TYPES.GROUP_FAVORITES:
+        message = 'Movie added to group favorites successfully';
+        break;
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Movie added to favorites successfully',
+      message: message,
       data: result.rows[0]
     });
 
