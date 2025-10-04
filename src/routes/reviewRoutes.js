@@ -16,6 +16,9 @@ const router = express.Router();
 // Create a new review (requires authentication)
 router.post('/', authenticateToken, createReview);
 
+// Get recent reviews (top 20 most recent) - MUST come before /:id
+router.get('/recent', getRecentReviews);
+
 // Get a specific review by ID
 router.get('/:id', getReview);
 
@@ -24,9 +27,6 @@ router.get('/movie/:movieId', getMovieReviews);
 
 // Get all reviews by a user
 router.get('/user/:userId', getUserReviews);
-
-// Get recent reviews (top 20 most recent)
-router.get('/recent', getRecentReviews);
 
 // Update a review (requires authentication)
 router.put('/:id', authenticateToken, updateReview);
