@@ -106,12 +106,38 @@ export const addToFavorites = async (req, res) => {
       }
     }
 
+    // Check if this combination already exists to prevent duplicates
+    const existingFavorite = await pool.query(`
+      SELECT id FROM favorites 
+      WHERE user_id = $1 AND tmdb_id = $2 AND type = $3 AND (group_id = $4 OR (group_id IS NULL AND $4 IS NULL))
+    `, [user_id, movie_id, type, type === FAVORITE_TYPES.GROUP_FAVORITES ? group_id : null]);
+
+    if (existingFavorite.rows.length > 0) {
+      // Already exists, return success without inserting
+      let message = '';
+      switch (type) {
+        case FAVORITE_TYPES.WATCHLIST:
+          message = 'Movie already in watchlist';
+          break;
+        case FAVORITE_TYPES.FAVORITES:
+          message = 'Movie already in favorites';
+          break;
+        case FAVORITE_TYPES.GROUP_FAVORITES:
+          message = 'Movie already in group favorites';
+          break;
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: message,
+        data: existingFavorite.rows[0]
+      });
+    }
+
     // Add to favorites table using tmdb_id directly
     const result = await pool.query(`
       INSERT INTO favorites (user_id, created_at, type, group_id, tmdb_id)
       VALUES ($1, NOW(), $2, $3, $4)
-      ON CONFLICT (user_id, tmdb_id, type, group_id) 
-      DO NOTHING
       RETURNING *
     `, [user_id, type, type === FAVORITE_TYPES.GROUP_FAVORITES ? group_id : null, movie_id]);
 
