@@ -121,12 +121,20 @@ class TMDBService {
         movie.original_title.toLowerCase() === originalTitle.toLowerCase()
       );
 
-      const formattedResults = this.formatMovieList(exactMatches);
-
-      // Save to database with Finnkino ID if provided
-      if (finnkinoId && formattedResults.length > 0) {
-        await this.saveMovieWithFinnkinoId(formattedResults[0], finnkinoId);
+      // Save to database with Finnkino ID if provided (using raw TMDB data)
+      if (finnkinoId && exactMatches.length > 0) {
+        // Use raw TMDB data for saving
+        const movieToSave = {
+          id: exactMatches[0].id,
+          original_title: exactMatches[0].original_title,
+          release_year: exactMatches[0].release_date ? 
+            parseInt(exactMatches[0].release_date.split('-')[0]) : null,
+          poster_path: exactMatches[0].poster_path
+        };
+        await this.saveMovieWithFinnkinoId(movieToSave, finnkinoId);
       }
+
+      const formattedResults = this.formatMovieList(exactMatches);
 
       return {
         results: formattedResults,
@@ -149,7 +157,6 @@ class TMDBService {
           id,
           original_title,
           release_year,
-          imdb_rating,
           tmdb_id,
           poster_url,
           f_id
@@ -163,14 +170,17 @@ class TMDBService {
 
       const movie = result.rows[0];
       
-      // Format to match TMDB response format
+      // Format to match formatMovieList output (camelCase)
       return {
-        id: movie.tmdb_id || movie.id,
-        original_title: movie.original_title,
-        release_year: movie.release_year,
-        poster_path: movie.poster_url,
-        vote_average: movie.imdb_rating,
-        f_id: movie.f_id
+        id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
+        title: movie.original_title, // Using original_title as title
+        originalTitle: movie.original_title,
+        releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
+        overview: null, // Not stored in database
+        posterPath: movie.poster_url ? `https://image.tmdb.org/t/p/w500${movie.poster_url}` : null,
+        voteAverage: null, // Not stored in database
+        f_id: movie.f_id,
+        fromDatabase: true
       };
     } catch (error) {
       console.error('Error fetching movie by Finnkino ID:', error);
@@ -184,33 +194,48 @@ class TMDBService {
    */
   async saveMovieWithFinnkinoId(movie, finnkinoId) {
     try {
+      // Validate required fields
+      if (!movie || !movie.id || !movie.original_title) {
+        console.error('Cannot save movie: missing required fields', { 
+          id: movie?.id, 
+          title: movie?.original_title 
+        });
+        return;
+      }
+
       // Generate unique ID for the movie (using TMDB ID as base)
       const movieId = `tmdb_${movie.id}`;
+      
+      // Ensure we have valid data
+      const originalTitle = movie.original_title || 'Unknown';
+      const releaseYear = movie.release_year || null;
+      const posterUrl = movie.poster_path || null;
 
       await pool.query(`
         INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (id) 
         DO UPDATE SET 
-          f_id = EXCLUDED.f_id,
-          original_title = EXCLUDED.original_title,
-          release_year = EXCLUDED.release_year,
-          tmdb_id = EXCLUDED.tmdb_id,
-          poster_url = EXCLUDED.poster_url
+          f_id = COALESCE(EXCLUDED.f_id, movies.f_id),
+          original_title = COALESCE(EXCLUDED.original_title, movies.original_title),
+          release_year = COALESCE(EXCLUDED.release_year, movies.release_year),
+          tmdb_id = COALESCE(EXCLUDED.tmdb_id, movies.tmdb_id),
+          poster_url = COALESCE(EXCLUDED.poster_url, movies.poster_url)
+        WHERE movies.f_id IS NULL OR movies.f_id != EXCLUDED.f_id
       `, [
         movieId,
-        movie.original_title,
-        movie.release_year,
+        originalTitle,
+        releaseYear,
         movie.id,
-        movie.poster_path,
+        posterUrl,
         finnkinoId
       ]);
 
-      console.log(`Saved movie to database: ${movie.original_title} (f_id: ${finnkinoId})`);
+      console.log(`Saved movie to database: ${originalTitle} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
     } catch (error) {
       // If there's a unique constraint violation on f_id, just log it
       if (error.code === '23505') {
-        console.log(`Movie with f_id ${finnkinoId} already exists in database`);
+        console.log(`Movie with f_id ${finnkinoId} or tmdb_id ${movie?.id} already exists in database`);
       } else {
         console.error('Error saving movie with Finnkino ID:', error);
       }
