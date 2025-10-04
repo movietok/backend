@@ -369,7 +369,7 @@ class Group {
    */
   static async getByGenreTags(genreIds, limit = 20, matchType = 'any') {
     try {
-      // If no genres provided, return all public groups
+      // If no genres provided, return all public and private groups
       if (!genreIds || genreIds.length === 0) {
         const query_text = `
           SELECT DISTINCT
@@ -388,7 +388,7 @@ class Group {
           JOIN users u ON g.owner_id = u.id
           LEFT JOIN group_members gm ON g.id = gm.group_id
           LEFT JOIN tags t ON g.id = t.group_id
-          WHERE g.visibility = 'public'
+          WHERE g.visibility IN ('public', 'private')
           GROUP BY g.id, u.username
           ORDER BY g.created_at DESC
           LIMIT $1
@@ -425,7 +425,7 @@ class Group {
           LEFT JOIN group_members gm ON g.id = gm.group_id
           JOIN tags t ON g.id = t.group_id
           WHERE t.genre_id = ANY($1)
-            AND g.visibility = 'public'
+            AND g.visibility IN ('public', 'private')
           GROUP BY g.id, u.username
           ORDER BY g.created_at DESC
           LIMIT $2
@@ -457,7 +457,7 @@ class Group {
             GROUP BY group_id 
             HAVING COUNT(DISTINCT genre_id) = $2
           )
-          AND g.visibility = 'public'
+          AND g.visibility IN ('public', 'private')
           GROUP BY g.id, u.username
           ORDER BY g.created_at DESC
           LIMIT $3
