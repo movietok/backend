@@ -71,7 +71,7 @@ class User {
   // UPDATE - Päivitä käyttäjän tiedot
   static async updateById(id, updateData) {
     try {
-      const allowedFields = ['username', 'email', 'password_hash'];
+      const allowedFields = ['username', 'email', 'password_hash', 'user_bio'];
       const updates = [];
       const values = [];
       let paramCount = 1;
