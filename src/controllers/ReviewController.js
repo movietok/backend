@@ -40,7 +40,7 @@ export const createReview = async (req, res) => {
       userId,
       movieId,
       rating,
-      comment: comment || null
+      content: content
     });
 
     res.status(201).json({
