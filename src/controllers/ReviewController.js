@@ -343,3 +343,24 @@ export const getGroupReviews = async (req, res) => {
     });
   }
 };
+
+export const getTopReviewers = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 20);
+    
+    const topReviewers = await ReviewService.getTopReviewers(limit);
+    
+    res.json({
+      status: 'success',
+      data: { users: topReviewers },
+      message: `Retrieved top ${topReviewers.length} reviewers`
+    });
+  } catch (error) {
+    console.error('Get top reviewers error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve top reviewers',
+      error: error.message
+    });
+  }
+};
