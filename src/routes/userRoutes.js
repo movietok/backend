@@ -8,6 +8,10 @@ const router = express.Router();
 router.post('/register', UserController.register);
 router.post('/login', UserController.login);
 
+// Public user browsing (no authentication required)
+router.get('/', UserController.getAllUsers);
+router.get('/:id', UserController.getUserById);
+
 // Suojatut reitit (vaativat autentikoinnin)
 router.use(authenticateToken); // Kaikki alla olevat reitit vaativat autentikoinnin
 
@@ -16,9 +20,7 @@ router.get('/profile', UserController.getProfile);
 router.put('/profile', UserController.updateProfile);
 router.delete('/profile', UserController.deleteProfile);
 
-// Käyttäjähallinta
-router.get('/', UserController.getAllUsers);
-router.get('/:id', UserController.getUserById);
+// Käyttäjähallinta (admin operations)
 router.put('/:id', UserController.updateUserById);
 router.delete('/:id', UserController.deleteUserById);
 
