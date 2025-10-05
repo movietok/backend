@@ -23,7 +23,7 @@ router.post('/', authenticateToken, createReview);
 router.get('/recent', getRecentReviews);
 
 // Get top reviewers by review count (limit 20)
-router.get('/top-reviewers', getTopReviewers);
+router.get('/users-by-review-count', getTopReviewers);
 
 // Get users by aura (net likes on their reviews)
 router.get('/users-by-aura', getUsersByAura);
