@@ -778,3 +778,33 @@ export const getAllPendingRequests = async (req, res) => {
     });
   }
 };
+
+export const getPopularGroups = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    
+    // Validate limit parameter
+    const groupLimit = parseInt(limit);
+    if (isNaN(groupLimit) || groupLimit < 1 || groupLimit > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Limit must be a number between 1 and 100'
+      });
+    }
+
+    const groups = await Group.getPopularGroups(groupLimit);
+
+    res.json({
+      success: true,
+      data: groups,
+      count: groups.length,
+      limit: groupLimit
+    });
+  } catch (error) {
+    console.error('Error getting popular groups:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get popular groups'
+    });
+  }
+};

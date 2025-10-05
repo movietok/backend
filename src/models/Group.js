@@ -1357,6 +1357,43 @@ class Group {
       throw new Error(`Failed to get pending requests: ${error.message}`);
     }
   }
+
+  /**
+   * Get popular groups sorted by member count
+   * @param {number} limit Maximum number of groups to return
+   * @returns {Promise<Array>} Array of groups sorted by member count (highest to lowest)
+   */
+  static async getPopularGroups(limit = 20) {
+    try {
+      const result = await query(
+        `SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g.visibility,
+          g.theme_id,
+          g.poster_url,
+          g.created_at,
+          g.owner_id,
+          u.username AS owner_name,
+          COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
+          COALESCE(array_agg(DISTINCT t.genre_id) FILTER (WHERE t.genre_id IS NOT NULL), '{}') AS genre_tags
+        FROM groups g
+        JOIN users u ON g.owner_id = u.id
+        LEFT JOIN group_members gm ON g.id = gm.group_id
+        LEFT JOIN tags t ON g.id = t.group_id
+        WHERE g.visibility IN ('public', 'private')
+        GROUP BY g.id, u.username
+        ORDER BY member_count DESC, g.created_at DESC
+        LIMIT $1`,
+        [limit]
+      );
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to get popular groups: ${error.message}`);
+    }
+  }
 }
 
 export default Group;
