@@ -12,6 +12,10 @@ class Review {
     this.dislikes = data.dislikes || 0;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+    // Movie information (when available from joins)
+    this.movie_name = data.movie_name || null;
+    this.release_year = data.release_year || null;
+    this.poster_url = data.poster_url || null;
   }
 
   // CREATE - Create a new review
@@ -113,12 +117,16 @@ class Review {
       const result = await query(
         `SELECT r.*, 
          u.username,
+         m.original_title as movie_name,
+         m.release_year,
+         m.poster_url,
          COUNT(CASE WHEN i.type = 'like' THEN 1 END) as likes,
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
+         LEFT JOIN movies m ON m.id = r.movie_id
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
-         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username
+         GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url
          ORDER BY r.created_at DESC
          LIMIT $1`,
         [limit]
