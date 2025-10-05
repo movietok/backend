@@ -27,7 +27,9 @@ class Review {
          VALUES ($1, $2, $3, $4) RETURNING *`,
         [movie_id, user_id, content, rating]
       );
-      return new Review(result.rows[0]);
+      
+      // Return the complete review with username and interaction stats
+      return await Review.findById(result.rows[0].id);
     } catch (error) {
       throw new Error(`Error creating review: ${error.message}`);
     }
@@ -147,7 +149,13 @@ class Review {
          WHERE id = $3 RETURNING *`,
         [content, rating, id]
       );
-      return result.rows[0] ? new Review(result.rows[0]) : null;
+      
+      if (!result.rows[0]) {
+        return null;
+      }
+      
+      // Return the complete review with username and interaction stats
+      return await Review.findById(id);
     } catch (error) {
       throw new Error(`Error updating review: ${error.message}`);
     }
