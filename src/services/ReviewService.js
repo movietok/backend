@@ -141,4 +141,13 @@ export class ReviewService {
       throw error;
     }
   }
+
+  // Get top reviewers by review count
+  static async getTopReviewers(limit = 20) {
+    try {
+      return await Review.findTopReviewers(limit);
+    } catch (error) {
+      throw error;
+    }
+  }
 }

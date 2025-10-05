@@ -221,6 +221,33 @@ class Review {
       throw new Error(`Error finding group reviews: ${error.message}`);
     }
   }
+
+  // READ - Get top reviewers by review count
+  static async findTopReviewers(limit = 20) {
+    try {
+      const result = await query(
+        `SELECT 
+          u.id,
+          u.username,
+          u.email,
+          u.real_name,
+          u.user_bio,
+          u.created_at as user_created_at,
+          COUNT(r.id) as review_count,
+          ROUND(AVG(r.rating), 2) as average_rating
+        FROM users u
+        LEFT JOIN reviews r ON u.id = r.user_id
+        GROUP BY u.id, u.username, u.email, u.real_name, u.user_bio, u.created_at
+        HAVING COUNT(r.id) > 0
+        ORDER BY review_count DESC, u.username ASC
+        LIMIT $1`,
+        [limit]
+      );
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Error finding top reviewers: ${error.message}`);
+    }
+  }
 }
 
 export default Review;

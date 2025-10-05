@@ -7,6 +7,7 @@ import {
   getUserReviews,
   getRecentReviews,
   getGroupReviews,
+  getTopReviewers,
   updateReview,
   deleteReview,
   addReviewInteraction
@@ -19,6 +20,9 @@ router.post('/', authenticateToken, createReview);
 
 // Get recent reviews (top 20 most recent) - MUST come before /:id
 router.get('/recent', getRecentReviews);
+
+// Get top reviewers by review count (limit 20)
+router.get('/top-reviewers', getTopReviewers);
 
 // Get a specific review by ID
 router.get('/:id', getReview);
