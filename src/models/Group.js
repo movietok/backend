@@ -1082,32 +1082,54 @@ class Group {
           paramCount++;
         }
 
-        // Ensure we have something to update
-        if (setClause.length === 0) {
+        // Ensure we have something to update (either group fields or tags)
+        const hasGroupFieldUpdates = setClause.length > 0;
+        const hasTagUpdates = updates.tags !== undefined;
+        
+        if (!hasGroupFieldUpdates && !hasTagUpdates) {
           throw new Error('No valid fields to update');
         }
 
-        // Add WHERE clause parameters
-        const whereParamStart = paramCount;
-        const whereParamNext = paramCount + 1;
-        values.push(gID, ownerId);
-        const whereClause = `WHERE id = $${whereParamStart} AND owner_id = $${whereParamNext}`;
+        let updatedGroup;
+        
+        // Update group fields if any
+        if (hasGroupFieldUpdates) {
+          // Add WHERE clause parameters
+          const whereParamStart = paramCount;
+          const whereParamNext = paramCount + 1;
+          values.push(gID, ownerId);
+          const whereClause = `WHERE id = $${whereParamStart} AND owner_id = $${whereParamNext}`;
 
-        // Execute update
-        const updateQuery = `
-          UPDATE groups 
-          SET ${setClause.join(', ')} 
-          ${whereClause}
-          RETURNING id, name, description, theme_id, visibility, poster_url, created_at, owner_id
-        `;
+          // Execute update
+          const updateQuery = `
+            UPDATE groups 
+            SET ${setClause.join(', ')} 
+            ${whereClause}
+            RETURNING id, name, description, theme_id, visibility, poster_url, created_at, owner_id
+          `;
 
-        console.log('Update query:', updateQuery);
-        console.log('Values:', values);
+          console.log('Update query:', updateQuery);
+          console.log('Values:', values);
 
-        const result = await query(updateQuery, values);
+          const result = await query(updateQuery, values);
 
-        if (result.rows.length === 0) {
-          throw new Error('Failed to update group details');
+          if (result.rows.length === 0) {
+            throw new Error('Failed to update group details');
+          }
+
+          updatedGroup = result.rows[0];
+        } else {
+          // If only tags are being updated, get current group data
+          const groupResult = await query(
+            'SELECT id, name, description, theme_id, visibility, poster_url, created_at, owner_id FROM groups WHERE id = $1 AND owner_id = $2',
+            [gID, ownerId]
+          );
+          
+          if (groupResult.rows.length === 0) {
+            throw new Error('Failed to update group details');
+          }
+          
+          updatedGroup = groupResult.rows[0];
         }
 
         // Get owner name
@@ -1116,7 +1138,6 @@ class Group {
           [ownerId]
         );
 
-        const updatedGroup = result.rows[0];
         updatedGroup.owner_name = ownerInfo.rows[0]?.username;
 
         // Update tags if provided
