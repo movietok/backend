@@ -8,6 +8,7 @@ import {
   getRecentReviews,
   getGroupReviews,
   getTopReviewers,
+  getUsersByAura,
   updateReview,
   deleteReview,
   addReviewInteraction
@@ -23,6 +24,9 @@ router.get('/recent', getRecentReviews);
 
 // Get top reviewers by review count (limit 20)
 router.get('/top-reviewers', getTopReviewers);
+
+// Get users by aura (net likes on their reviews)
+router.get('/users-by-aura', getUsersByAura);
 
 // Get a specific review by ID
 router.get('/:id', getReview);

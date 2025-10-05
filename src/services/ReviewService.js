@@ -150,4 +150,13 @@ export class ReviewService {
       throw error;
     }
   }
+
+  // Get users by aura (net likes on their reviews)
+  static async getUsersByAura(limit = 20) {
+    try {
+      return await Review.findUsersByAura(limit);
+    } catch (error) {
+      throw error;
+    }
+  }
 }
