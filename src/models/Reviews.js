@@ -248,6 +248,37 @@ class Review {
       throw new Error(`Error finding top reviewers: ${error.message}`);
     }
   }
+
+  // READ - Get users by aura (net likes on their reviews)
+  static async findUsersByAura(limit = 20) {
+    try {
+      const result = await query(
+        `SELECT 
+          u.id,
+          u.username,
+          u.email,
+          u.real_name,
+          u.user_bio,
+          u.created_at as user_created_at,
+          COUNT(r.id) as review_count,
+          ROUND(AVG(r.rating), 2) as average_rating,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 ELSE 0 END), 0) as total_likes,
+          COALESCE(SUM(CASE WHEN i.type = 'dislike' THEN 1 ELSE 0 END), 0) as total_dislikes,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 WHEN i.type = 'dislike' THEN -1 ELSE 0 END), 0) as aura
+        FROM users u
+        LEFT JOIN reviews r ON u.id = r.user_id
+        LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
+        GROUP BY u.id, u.username, u.email, u.real_name, u.user_bio, u.created_at
+        HAVING COUNT(r.id) > 0
+        ORDER BY aura DESC, total_likes DESC, review_count DESC, u.username ASC
+        LIMIT $1`,
+        [limit]
+      );
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Error finding users by aura: ${error.message}`);
+    }
+  }
 }
 
 export default Review;

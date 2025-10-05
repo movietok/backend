@@ -7,8 +7,15 @@ class User {
     this.email = data.email;
     this.password_hash = data.password_hash;
     this.real_name = data.real_name;
+    this.user_bio = data.user_bio;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+    // Aura statistics (from interactions on user's reviews)
+    this.review_count = data.review_count || '0';
+    this.average_rating = data.average_rating || null;
+    this.total_likes = data.total_likes || '0';
+    this.total_dislikes = data.total_dislikes || '0';
+    this.aura = data.aura || '0';
   }
 
   // CREATE - Luo uusi käyttäjä
@@ -28,7 +35,21 @@ class User {
   // READ - Hae käyttäjä ID:n perusteella
   static async findById(id) {
     try {
-      const result = await query('SELECT * FROM users WHERE id = $1', [id]);
+      const result = await query(
+        `SELECT 
+          u.*,
+          COUNT(r.id) as review_count,
+          ROUND(AVG(r.rating), 2) as average_rating,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 ELSE 0 END), 0) as total_likes,
+          COALESCE(SUM(CASE WHEN i.type = 'dislike' THEN 1 ELSE 0 END), 0) as total_dislikes,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 WHEN i.type = 'dislike' THEN -1 ELSE 0 END), 0) as aura
+        FROM users u
+        LEFT JOIN reviews r ON u.id = r.user_id
+        LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
+        WHERE u.id = $1
+        GROUP BY u.id, u.username, u.email, u.password_hash, u.real_name, u.user_bio, u.created_at, u.updated_at`,
+        [id]
+      );
       return result.rows.length > 0 ? new User(result.rows[0]) : null;
     } catch (error) {
       throw new Error(`Error finding user by ID: ${error.message}`);
@@ -59,7 +80,19 @@ class User {
   static async findAll(limit = 50, offset = 0) {
     try {
       const result = await query(
-        'SELECT * FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        `SELECT 
+          u.*,
+          COUNT(r.id) as review_count,
+          ROUND(AVG(r.rating), 2) as average_rating,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 ELSE 0 END), 0) as total_likes,
+          COALESCE(SUM(CASE WHEN i.type = 'dislike' THEN 1 ELSE 0 END), 0) as total_dislikes,
+          COALESCE(SUM(CASE WHEN i.type = 'like' THEN 1 WHEN i.type = 'dislike' THEN -1 ELSE 0 END), 0) as aura
+        FROM users u
+        LEFT JOIN reviews r ON u.id = r.user_id
+        LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
+        GROUP BY u.id, u.username, u.email, u.password_hash, u.real_name, u.user_bio, u.created_at, u.updated_at
+        ORDER BY u.created_at DESC 
+        LIMIT $1 OFFSET $2`,
         [limit, offset]
       );
       return result.rows.map(row => new User(row));
@@ -94,7 +127,12 @@ class User {
         values
       );
 
-      return result.rows.length > 0 ? new User(result.rows[0]) : null;
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      // Return the updated user with full statistics
+      return await User.findById(id);
     } catch (error) {
       throw new Error(`Error updating user: ${error.message}`);
     }
@@ -131,8 +169,16 @@ class User {
       id: this.id,
       username: this.username,
       email: this.email,
+      real_name: this.real_name,
+      user_bio: this.user_bio,
       created_at: this.created_at,
-      updated_at: this.updated_at
+      updated_at: this.updated_at,
+      // Aura statistics
+      review_count: this.review_count,
+      average_rating: this.average_rating,
+      total_likes: this.total_likes,
+      total_dislikes: this.total_dislikes,
+      aura: this.aura
     };
   }
 

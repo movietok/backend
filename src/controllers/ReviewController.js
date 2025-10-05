@@ -364,3 +364,24 @@ export const getTopReviewers = async (req, res) => {
     });
   }
 };
+
+export const getUsersByAura = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 20);
+    
+    const usersByAura = await ReviewService.getUsersByAura(limit);
+    
+    res.json({
+      status: 'success',
+      data: { users: usersByAura },
+      message: `Retrieved top ${usersByAura.length} users by aura`
+    });
+  } catch (error) {
+    console.error('Get users by aura error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve users by aura',
+      error: error.message
+    });
+  }
+};
