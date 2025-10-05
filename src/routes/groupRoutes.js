@@ -15,12 +15,16 @@ import {
   getAllPendingRequests,
   removeMemberFromGroup,
   updateMemberRole,
-  updateGroupDetails
+  updateGroupDetails,
+  getPopularGroups
 } from '../controllers/GroupController.js';
 
 const router = express.Router();
 
 // Public routes (no authentication required)
+// Get popular groups sorted by member count
+router.get('/popular', getPopularGroups);
+
 // Search groups
 router.get('/search', searchGroups);
 
