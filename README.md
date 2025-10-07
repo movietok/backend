@@ -12,56 +12,56 @@ Modern Node.js backend for the Movietok movie platform with comprehensive review
 - **Modern Features**: JWT authentication, CORS support, health checks
 - **Database**: PostgreSQL database with complete schema
 
-##  Project Structure
+## 📁 Project Structure
 
-``
+```
 backend/
- src/
-    config/           # Database and other configurations
-       database.js
-       config.js
-    controllers/      # API controllers (CRUD logic)
-       UserController.js
-       ReviewController.js
-       GroupController.js
-       FavoritesController.js
-       FinnkinoController.js
-       TMDBController.js
-       GenresController.js
-    middleware/       # Express middlewares
-       auth.js
-    models/          # Database models
-       User.js
-       Movie.js
-       Reviews.js
-       Group.js
-       Genre.js
-    routes/          # API routes
-       index.js
-       userRoutes.js
-       reviewRoutes.js
-       groupRoutes.js
-       favorites.js
-       finnkinoRoutes.js
-       tmdbRoutes.js
-    services/        # Business logic
-       UserService.js
-       ReviewService.js
-       FinnkinoService.js
-    utils/           # Utility functions
- scripts/             # Helper scripts
-    switch-env.js
- tests/               # Tests
-    user.test.js
-    auth.test.js
-    review.test.js
- index.js            # Application entry point
- package.json
- Database.sql        # Database schema
- Postman/            # Postman schemas for endpoint testing
- FINNKINO_API.md     # Finnkino API documentation
- README.md
-``
+├── src/
+│   ├── config/                  # Database and other configurations
+│   │   ├── database.js
+│   │   └── config.js
+│   ├── controllers/             # API controllers (CRUD logic)
+│   │   ├── UserController.js
+│   │   ├── ReviewController.js
+│   │   ├── GroupController.js
+│   │   ├── FavoritesController.js
+│   │   ├── FinnkinoController.js
+│   │   ├── TMDBController.js
+│   │   └── GenresController.js
+│   ├── middleware/              # Express middlewares
+│   │   └── auth.js
+│   ├── models/                  # Database models
+│   │   ├── User.js
+│   │   ├── Movie.js
+│   │   ├── Reviews.js
+│   │   ├── Group.js
+│   │   └── Genre.js
+│   ├── routes/                  # API routes
+│   │   ├── index.js
+│   │   ├── userRoutes.js
+│   │   ├── reviewRoutes.js
+│   │   ├── groupRoutes.js
+│   │   ├── favorites.js
+│   │   ├── finnkinoRoutes.js
+│   │   └── tmdbRoutes.js
+│   ├── services/                # Business logic
+│   │   ├── UserService.js
+│   │   ├── ReviewService.js
+│   │   └── FinnkinoService.js
+│   └── utils/                   # Utility functions
+├── scripts/                     # Helper scripts
+│   └── switch-env.js
+├── tests/                       # Tests
+│   ├── user.test.js
+│   ├── auth.test.js
+│   └── review.test.js
+├── index.js                     # Application entry point
+├── package.json                 # Dependencies & scripts
+├── Database.sql                 # Database schema
+├── Postman/                     # Postman schemas for endpoint testing
+├── FINNKINO_API.md              # Finnkino API documentation
+└── README.md                    # This documentation
+```
 
 ##  Requirements
 
