@@ -48,7 +48,7 @@ class Review {
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
-         LEFT JOIN movies m ON m.tmdb_id::text = r.movie_id
+         LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.id = $1
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url`,
@@ -86,7 +86,7 @@ class Review {
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
-         LEFT JOIN movies m ON m.tmdb_id::text = r.movie_id
+         LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.movie_id = $1
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url
@@ -112,7 +112,7 @@ class Review {
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
-         LEFT JOIN movies m ON m.tmdb_id::text = r.movie_id
+         LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.user_id = $1
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url
@@ -138,7 +138,7 @@ class Review {
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
-         LEFT JOIN movies m ON m.tmdb_id::text = r.movie_id
+         LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url
          ORDER BY r.created_at DESC
@@ -225,7 +225,7 @@ class Review {
          COUNT(CASE WHEN i.type = 'dislike' THEN 1 END) as dislikes
          FROM reviews r
          JOIN users u ON u.id = r.user_id
-         LEFT JOIN movies m ON m.tmdb_id::text = r.movie_id
+         LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
          WHERE r.movie_id::text IN (
            -- Get movies that are in group favorites
