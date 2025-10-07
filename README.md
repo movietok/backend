@@ -254,7 +254,9 @@ Authorization: Bearer <your_jwt_token>
 
 Token contains user information and expires after a defined time period.
 
-##  Database Schema
+## 🗄️ Database Schema
+
+![Database ERD](MovietokDB.png)
 
 The project uses PostgreSQL database with the following tables:
 
@@ -274,6 +276,7 @@ The project uses PostgreSQL database with the following tables:
 ### Features
 - **Aura Points**: Calculated based on review likes received
 - **Group Hierarchy**: Owner, moderator, member roles
+- **Favorite Levels**: 1 = watched, 2 = liked, 3 = group favorite
 
 ##  Testing
 
