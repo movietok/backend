@@ -256,10 +256,9 @@ Token contains user information and expires after a defined time period.
 
 ## 🗄️ Database Schema
 
-<div align="center">
-  <img src="MovietokDB.png" alt="Movietok Database ERD" width="800">
-  <p><em>Entity Relationship Diagram of the Movietok Database</em></p>
-</div>
+![Movietok Database ERD](docs/MovietokDB.png)
+
+*Entity Relationship Diagram of the Movietok Database*
 
 The project uses PostgreSQL database with the following tables:
 
