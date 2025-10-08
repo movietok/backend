@@ -256,7 +256,7 @@ Token contains user information and expires after a defined time period.
 
 ## 🗄️ Database Schema
 
-![Movietok Database ERD](./movietok.png)
+![Movietok Database ERD](./vuokaavio.png)
 
 *Entity Relationship Diagram of the Movietok Database*
 
