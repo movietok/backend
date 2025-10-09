@@ -219,7 +219,7 @@ class TMDBService {
       await pool.query(`
         INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
         VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (id) 
+        ON CONFLICT (tmdb_id) 
         DO UPDATE SET 
           f_id = COALESCE(EXCLUDED.f_id, movies.f_id),
           original_title = COALESCE(EXCLUDED.original_title, movies.original_title),
