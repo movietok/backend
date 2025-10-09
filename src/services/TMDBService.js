@@ -262,14 +262,10 @@ class TMDBService {
       // Format movies to match TMDB API response format
       const movies = result.movies.map(movie => ({
         id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
-        title: movie.original_title,
         originalTitle: movie.original_title,
-        releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
         releaseYear: movie.release_year,
         posterPath: movie.poster_url,
         f_id: movie.f_id,
-        fromDatabase: true,
-        createdAt: movie.created_at
       }));
 
       return {
