@@ -307,14 +307,88 @@ class TMDBService {
 
       const data = await this.fetchTMDBData('/discover/movie', params);
 
+      // Format the movie list
+      const formattedMovies = this.formatMovieList(data.results);
+      
+      // Add favorites data to each movie
+      const moviesWithFavorites = await this.addFavoritesDataToMovies(formattedMovies);
+
       return {
-        results: this.formatMovieList(data.results),
+        results: moviesWithFavorites,
         page: data.page,
         totalPages: data.total_pages,
         totalResults: data.total_results
       };
     } catch (error) {
       throw new Error(`Failed to discover movies: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add favorites/watchlist data to movies
+   * @private
+   */
+  async addFavoritesDataToMovies(movies) {
+    if (!movies || movies.length === 0) {
+      return movies;
+    }
+
+    try {
+      // Get all TMDB IDs from the movies
+      const tmdbIds = movies.map(movie => movie.id);
+      
+      // Query favorites table for users who have added these movies to favorites or watchlist
+      const favoritesResult = await pool.query(`
+        SELECT 
+          f.tmdb_id,
+          f.user_id,
+          u.username,
+          f.type
+        FROM favorites f
+        JOIN users u ON f.user_id = u.id
+        WHERE f.tmdb_id = ANY($1) 
+        AND f.type IN (1, 2)
+        ORDER BY f.tmdb_id, f.type, u.username
+      `, [tmdbIds]);
+
+      // Group favorites by movie TMDB ID and user
+      const favoritesByMovie = {};
+      favoritesResult.rows.forEach(row => {
+        if (!favoritesByMovie[row.tmdb_id]) {
+          favoritesByMovie[row.tmdb_id] = {};
+        }
+        if (!favoritesByMovie[row.tmdb_id][row.user_id]) {
+          favoritesByMovie[row.tmdb_id][row.user_id] = {
+            user_id: row.user_id,
+            username: row.username,
+            isFavorite: false,
+            isWatchlist: false
+          };
+        }
+        
+        // Set the appropriate flag based on type
+        if (row.type === 1) {
+          favoritesByMovie[row.tmdb_id][row.user_id].isFavorite = true;
+        } else if (row.type === 2) {
+          favoritesByMovie[row.tmdb_id][row.user_id].isWatchlist = true;
+        }
+      });
+
+      // Add favorites data to each movie
+      return movies.map(movie => ({
+        ...movie,
+        favoritesData: favoritesByMovie[movie.id] 
+          ? Object.values(favoritesByMovie[movie.id]) 
+          : []
+      }));
+
+    } catch (error) {
+      console.error('Error fetching favorites data:', error);
+      // Return movies without favorites data if there's an error
+      return movies.map(movie => ({
+        ...movie,
+        favoritesData: []
+      }));
     }
   }
 
