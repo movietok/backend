@@ -3,7 +3,8 @@ import {
   searchMovies, 
   getMovieDetails, 
   getMoviesByTitleAndYear,
-  discoverMovies
+  discoverMovies,
+  getMoviesInTheaters
 } from '../controllers/TMDBController.js';
 
 import { getLocalGenres } from '../controllers/GenresController.js';
@@ -15,6 +16,9 @@ router.get('/search', searchMovies);
 
 // Get Genres from local database
 router.get('/genres', getLocalGenres);
+
+// Get movies currently in theaters (with Finnkino ID)
+router.get('/in-theaters', getMoviesInTheaters);
 
 // Get movies by title & year
 router.get('/title-year', getMoviesByTitleAndYear);
