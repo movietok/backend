@@ -196,10 +196,10 @@ class TMDBService {
   async saveMovieWithFinnkinoId(movie, finnkinoId) {
     try {
       // Validate required fields
-      if (!movie || !movie.id || !movie.original_title) {
+      if (!movie || !movie.id || !movie.title) {
         console.error('Cannot save movie: missing required fields', { 
           id: movie?.id, 
-          title: movie?.original_title
+          title: movie?.title
         });
         return;
       }
@@ -209,32 +209,54 @@ class TMDBService {
       const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
       
       // Ensure we have valid data
-      const originalTitle = movie.original_title || 'Unknown';
+      const originalTitle = movie.title || 'Unknown';
       const releaseYear = movie.release_year || null;
       // Store full poster URL, not just the path
       const posterUrl = movie.poster_path 
         ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
         : null;
 
-      await pool.query(`
-        INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (tmdb_id) 
-        DO UPDATE SET 
-          f_id = COALESCE(EXCLUDED.f_id, movies.f_id),
-          original_title = COALESCE(EXCLUDED.original_title, movies.original_title),
-          release_year = COALESCE(EXCLUDED.release_year, movies.release_year),
-          tmdb_id = COALESCE(EXCLUDED.tmdb_id, movies.tmdb_id),
-          poster_url = COALESCE(EXCLUDED.poster_url, movies.poster_url)
-        WHERE movies.f_id IS NULL OR movies.f_id != EXCLUDED.f_id
-      `, [
+      console.log('Attempting to save movie with data:', {
         movieId,
         originalTitle,
         releaseYear,
-        movie.id,
+        tmdb_id: movie.id,
         posterUrl,
         finnkinoId
-      ]);
+      });
+
+      // First, try to update existing movie by tmdb_id
+      const updateResult = await pool.query(`
+        UPDATE movies 
+        SET f_id = $1, 
+            original_title = COALESCE($2, original_title),
+            release_year = COALESCE($3, release_year),
+            poster_url = COALESCE($4, poster_url)
+        WHERE tmdb_id = $5
+        RETURNING id
+      `, [finnkinoId, originalTitle, releaseYear, posterUrl, movie.id]);
+
+      if (updateResult.rowCount === 0) {
+        // No existing movie found by tmdb_id, so insert new one
+        await pool.query(`
+          INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (id) 
+          DO UPDATE SET 
+            f_id = EXCLUDED.f_id,
+            original_title = EXCLUDED.original_title,
+            release_year = EXCLUDED.release_year,
+            tmdb_id = EXCLUDED.tmdb_id,
+            poster_url = EXCLUDED.poster_url
+        `, [
+          movieId,
+          originalTitle,
+          releaseYear,
+          movie.id,
+          posterUrl,
+          finnkinoId
+        ]);
+      }
 
       console.log(`Saved movie to database: ${originalTitle} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
     } catch (error) {
