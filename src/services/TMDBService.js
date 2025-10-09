@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import Movie from '../models/Movie.js';
 
 class TMDBService {
   constructor() {
@@ -243,6 +244,44 @@ class TMDBService {
       } else {
         console.error('Error saving movie with Finnkino ID:', error);
       }
+    }
+  }
+
+  /**
+   * Get all movies from database that have Finnkino ID
+   * @param {Object} options - Query options
+   * @param {number} [options.limit=10] - Maximum number of movies to return
+   * @param {number} [options.offset=0] - Number of movies to skip
+   * @returns {Promise<Object>} - Movies with Finnkino ID
+   */
+  async getMoviesWithFinnkinoId({ limit = 10, offset = 0 } = {}) {
+    try {
+      // Use Movie model to fetch movies with Finnkino ID
+      const result = await Movie.findWithFinnkinoId({ limit, offset });
+
+      // Format movies to match TMDB API response format
+      const movies = result.movies.map(movie => ({
+        id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
+        title: movie.original_title,
+        originalTitle: movie.original_title,
+        releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
+        releaseYear: movie.release_year,
+        posterPath: movie.poster_url,
+        f_id: movie.f_id,
+        fromDatabase: true,
+        createdAt: movie.created_at
+      }));
+
+      return {
+        results: movies,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore
+      };
+    } catch (error) {
+      console.error('Error fetching movies with Finnkino ID:', error);
+      throw new Error(`Failed to fetch movies with Finnkino ID: ${error.message}`);
     }
   }
 

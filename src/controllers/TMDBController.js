@@ -133,4 +133,43 @@ export const getMoviesByTitleAndYear = async (req, res) => {
   }
 };
 
+export const getMoviesInTheaters = async (req, res) => {
+  try {
+    const { limit = 10, offset = 0 } = req.query;
+
+    // Validate limit
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Limit must be between 1 and 100'
+      });
+    }
+
+    // Validate offset
+    const offsetNum = parseInt(offset);
+    if (isNaN(offsetNum) || offsetNum < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Offset must be 0 or greater'
+      });
+    }
+
+    const results = await TMDBService.getMoviesWithFinnkinoId({
+      limit: limitNum,
+      offset: offsetNum
+    });
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error) {
+    console.error('Error getting movies in theaters:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 
