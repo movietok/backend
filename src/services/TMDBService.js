@@ -117,9 +117,9 @@ class TMDBService {
         sort_by: 'popularity.desc'
       });
 
-      // Filter results to only include exact original_title matches
+      // Filter results to only include exact title matches (checking against TMDB title field)
       const exactMatches = data.results.filter(movie => 
-        movie.original_title.toLowerCase() === originalTitle.toLowerCase()
+        movie.title.toLowerCase() === originalTitle.toLowerCase()
       );
 
       // Save to database with Finnkino ID if provided (using raw TMDB data)
@@ -127,7 +127,7 @@ class TMDBService {
         // Use raw TMDB data for saving
         const movieToSave = {
           id: exactMatches[0].id,
-          original_title: exactMatches[0].original_title,
+          original_title: exactMatches[0].title,
           release_year: exactMatches[0].release_date ? 
             parseInt(exactMatches[0].release_date.split('-')[0]) : null,
           poster_path: exactMatches[0].poster_path
@@ -196,10 +196,10 @@ class TMDBService {
   async saveMovieWithFinnkinoId(movie, finnkinoId) {
     try {
       // Validate required fields
-      if (!movie || !movie.id || !movie.original_title) {
+      if (!movie || !movie.id || !movie.title) {
         console.error('Cannot save movie: missing required fields', { 
           id: movie?.id, 
-          title: movie?.original_title 
+          title: movie?.title 
         });
         return;
       }
@@ -209,7 +209,7 @@ class TMDBService {
       const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
       
       // Ensure we have valid data
-      const originalTitle = movie.original_title || 'Unknown';
+      const originalTitle = movie.title || 'Unknown';
       const releaseYear = movie.release_year || null;
       // Store full poster URL, not just the path
       const posterUrl = movie.poster_path 
@@ -350,7 +350,7 @@ class TMDBService {
     return movies.map(movie => ({
       id: movie.id,
       title: movie.title,
-      originalTitle: movie.original_title,
+      originalTitle: movie.title,
       releaseDate: movie.release_date,
       overview: movie.overview,
       posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
@@ -396,7 +396,7 @@ class TMDBService {
     return {
       id: movie.id,
       title: movie.title,
-      originalTitle: movie.original_title,
+      originalTitle: movie.title,
       tagline: movie.tagline,
       overview: movie.overview,
       releaseDate: movie.release_date,
