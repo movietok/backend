@@ -193,6 +193,47 @@ class Movie {
     }
   }
 
+  // Find all movies with Finnkino ID (movies currently in theaters)
+  static async findWithFinnkinoId({ limit = 100, offset = 0 } = {}) {
+    try {
+      // Get movies with f_id
+      const result = await query(
+        `SELECT 
+          id,
+          original_title,
+          release_year,
+          tmdb_id,
+          poster_url,
+          f_id,
+          created_at
+        FROM movies 
+        WHERE f_id IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+
+      // Get total count
+      const countResult = await query(
+        `SELECT COUNT(*) as total
+        FROM movies 
+        WHERE f_id IS NOT NULL`
+      );
+
+      const total = parseInt(countResult.rows[0].total);
+
+      return {
+        movies: result.rows,
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total
+      };
+    } catch (error) {
+      throw new Error(`Error finding movies with Finnkino ID: ${error.message}`);
+    }
+  }
+
   // Create or update movie from TMDB data
   static async createFromTmdb(tmdbData) {
     try {
