@@ -165,17 +165,6 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- Name: TheatreAreas; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public."TheatreAreas" (
-    "PaikkaID" integer NOT NULL,
-    "PaikkaNimi" text
-);
-
-
-ALTER TABLE public."TheatreAreas" OWNER TO postgres;
 
 --
 -- Name: favorites; Type: TABLE; Schema: public; Owner: postgres
@@ -509,32 +498,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- Data for Name: TheatreAreas; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."TheatreAreas" ("PaikkaID", "PaikkaNimi") FROM stdin;
-1029	Pääkaupunkiseutu
-1014	Espoo
-1012	Helsinki
-1002	Helsinki: ITIS
-1045	Helsinki: KINOPALATSI
-1032	Helsinki, MAXIM
-1033	Helsinki: TENNISPALATSI
-1013	Vantaa: FLAMINGO
-1015	Jyväskylä: FANTASIA
-1016	Kuopio: SCALA
-1017	Lahti: KUVAPALATSI
-1041	Lappeenranta: STRAND
-1018	Oulu: PLAZA
-1021	Tampere
-1034	Tampere: CINE ATLAS
-1035	Tampere: PLEVNA
-1047	Turku ja Raisio
-1022	Turku: KINOPALATSI
-1046	Raisio: LUZE MYLLY
-\.
-
---
 -- Data for Name: genres; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -621,14 +584,6 @@ SELECT pg_catalog.setval('public.users_id_seq', 40, true);
 
 ALTER TABLE ONLY public.genres
     ADD CONSTRAINT "Genres_pkey" PRIMARY KEY (id);
-
-
---
--- Name: TheatreAreas TheatreAreas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."TheatreAreas"
-    ADD CONSTRAINT "TheatreAreas_pkey" PRIMARY KEY ("PaikkaID");
 
 
 --
