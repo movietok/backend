@@ -1,4 +1,4 @@
-import Movie from '../models/Movie.js';
+import { query } from '../config/database.js';
 
 class TMDBService {
   constructor() {
@@ -162,9 +162,19 @@ class TMDBService {
    */
   async getMovieByFinnkinoId(finnkinoId) {
     try {
-      const movie = await Movie.findByFinnkinoId(finnkinoId);
+      const result = await query(`
+        SELECT 
+          id,
+          original_title,
+          release_year,
+          tmdb_id,
+          poster_url,
+          f_id
+        FROM movies 
+        WHERE f_id = $1
+      `, [finnkinoId]);
 
-      if (!movie) {
+      if (result.rows.length === 0) {
         return null;
       }
       
@@ -212,9 +222,38 @@ class TMDBService {
           : null
       };
 
-      // Use Movie model to upsert with Finnkino ID
-      // This will check if movie exists by title+year first
-      const savedMovie = await Movie.upsertWithFinnkinoId(movieData, finnkinoId);
+      // First, try to update existing movie by tmdb_id
+      const updateResult = await query(`
+        UPDATE movies 
+        SET f_id = $1, 
+            original_title = COALESCE($2, original_title),
+            release_year = COALESCE($3, release_year),
+            poster_url = COALESCE($4, poster_url)
+        WHERE tmdb_id = $5
+        RETURNING id
+      `, [finnkinoId, originalTitle, releaseYear, posterUrl, movie.id]);
+
+      if (updateResult.rowCount === 0) {
+        // No existing movie found by tmdb_id, so insert new one
+        await query(`
+          INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (id) 
+          DO UPDATE SET 
+            f_id = EXCLUDED.f_id,
+            original_title = EXCLUDED.original_title,
+            release_year = EXCLUDED.release_year,
+            tmdb_id = EXCLUDED.tmdb_id,
+            poster_url = EXCLUDED.poster_url
+        `, [
+          movieId,
+          originalTitle,
+          releaseYear,
+          movie.id,
+          posterUrl,
+          finnkinoId
+        ]);
+      }
 
       if (savedMovie) {
         console.log(`✅ Movie saved/updated: ${movieData.title} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
@@ -338,7 +377,7 @@ class TMDBService {
       const tmdbIds = movies.map(movie => movie.id);
       
       // Query favorites table for users who have added these movies to favorites or watchlist
-      const favoritesResult = await pool.query(`
+      const favoritesResult = await query(`
         SELECT 
           f.tmdb_id,
           f.user_id,
