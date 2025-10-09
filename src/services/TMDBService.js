@@ -116,29 +116,38 @@ class TMDBService {
         sort_by: 'popularity.desc'
       });
 
-      // Filter results to only include exact title matches (checking against TMDB title field)
-      const exactMatches = data.results.filter(movie => 
-        movie.title.toLowerCase() === originalTitle.toLowerCase()
-      );
+      console.log(`TMDB search for "${originalTitle}" (${year}): found ${data.results.length} results`);
 
-      // Save to database with Finnkino ID if provided (using raw TMDB data)
-      if (finnkinoId && exactMatches.length > 0) {
+      // Take the best match (first result, sorted by popularity)
+      const bestMatch = data.results.length > 0 ? data.results[0] : null;
+
+      // Save to database with Finnkino ID if we found a match
+      if (finnkinoId && bestMatch) {
+        console.log(`Saving movie to database with f_id ${finnkinoId}:`, {
+          title: bestMatch.title,
+          tmdb_id: bestMatch.id,
+          year: bestMatch.release_date
+        });
+
         // Use raw TMDB data for saving
         const movieToSave = {
-          id: exactMatches[0].id,
-          title: exactMatches[0].title,
-          release_year: exactMatches[0].release_date ? 
-            parseInt(exactMatches[0].release_date.split('-')[0]) : null,
-          poster_path: exactMatches[0].poster_path
+          id: bestMatch.id,
+          title: bestMatch.title,
+          release_year: bestMatch.release_date ? 
+            parseInt(bestMatch.release_date.split('-')[0]) : null,
+          poster_path: bestMatch.poster_path
         };
+        
         await this.saveMovieWithFinnkinoId(movieToSave, finnkinoId);
+      } else if (finnkinoId && !bestMatch) {
+        console.warn(`⚠️  No TMDB results found for "${originalTitle}" (${year}), f_id ${finnkinoId} not saved`);
       }
 
-      const formattedResults = this.formatMovieList(exactMatches);
+      const formattedResults = this.formatMovieList(data.results);
 
       return {
         results: formattedResults,
-        totalResults: exactMatches.length,
+        totalResults: data.results.length,
         source: 'tmdb'
       };
     } catch (error) {
