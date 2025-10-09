@@ -35,7 +35,7 @@ class Review {
     }
   }
 
-  // READ - Get a single review by ID
+  // READ - Get a single review by ID with interactions
   static async findById(id) {
     try {
       const result = await query(
@@ -54,9 +54,34 @@ class Review {
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url`,
         [id]
       );
-      return result.rows[0] ? new Review(result.rows[0]) : null;
+
+      if (!result.rows[0]) return null;
+
+      const review = new Review(result.rows[0]);
+      
+      // Get interactions for this review
+      review.interactions = await Review.getReviewInteractions(id);
+      
+      return review;
     } catch (error) {
       throw new Error(`Error finding review: ${error.message}`);
+    }
+  }
+
+  // Get interactions for a specific review
+  static async getReviewInteractions(reviewId) {
+    try {
+      const result = await query(
+        `SELECT i.user_id, i.type, u.username
+         FROM interactions i
+         JOIN users u ON u.id = i.user_id
+         WHERE i.target_id = $1 AND i.target_type = 'review'
+         ORDER BY i.created_at DESC`,
+        [reviewId]
+      );
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Error getting review interactions: ${error.message}`);
     }
   }
 
@@ -74,6 +99,51 @@ class Review {
   }
 
   // READ - Get all reviews for a movie
+  // Helper method to add interactions to reviews
+  static async addInteractionsToReviews(reviews) {
+    if (!reviews || reviews.length === 0) return reviews;
+    
+    const reviewIds = reviews.map(review => review.id);
+    
+    try {
+      const result = await query(
+        `SELECT i.target_id as review_id, i.user_id, i.type, u.username
+         FROM interactions i
+         JOIN users u ON u.id = i.user_id
+         WHERE i.target_id = ANY($1) AND i.target_type = 'review'
+         ORDER BY i.created_at DESC`,
+        [reviewIds]
+      );
+      
+      // Group interactions by review_id
+      const interactionsByReview = {};
+      result.rows.forEach(interaction => {
+        if (!interactionsByReview[interaction.review_id]) {
+          interactionsByReview[interaction.review_id] = [];
+        }
+        interactionsByReview[interaction.review_id].push({
+          user_id: interaction.user_id,
+          username: interaction.username,
+          type: interaction.type
+        });
+      });
+      
+      // Add interactions to each review
+      return reviews.map(review => {
+        review.interactions = interactionsByReview[review.id] || [];
+        return review;
+      });
+    } catch (error) {
+      console.error('Error adding interactions to reviews:', error);
+      // Return reviews without interactions if there's an error
+      return reviews.map(review => {
+        review.interactions = [];
+        return review;
+      });
+    }
+  }
+
+  // READ - Get reviews by movie ID with interactions
   static async findByMovieId(movieId) {
     try {
       const result = await query(
@@ -93,13 +163,15 @@ class Review {
          ORDER BY r.created_at DESC`,
         [movieId]
       );
-      return result.rows.map(row => new Review(row));
+      
+      const reviews = result.rows.map(row => new Review(row));
+      return await Review.addInteractionsToReviews(reviews);
     } catch (error) {
       throw new Error(`Error finding reviews for movie: ${error.message}`);
     }
   }
 
-  // READ - Get all reviews by a user
+  // READ - Get all reviews by a user with interactions
   static async findByUserId(userId) {
     try {
       const result = await query(
@@ -119,13 +191,15 @@ class Review {
          ORDER BY r.created_at DESC`,
         [userId]
       );
-      return result.rows.map(row => new Review(row));
+      
+      const reviews = result.rows.map(row => new Review(row));
+      return await Review.addInteractionsToReviews(reviews);
     } catch (error) {
       throw new Error(`Error finding reviews by user: ${error.message}`);
     }
   }
 
-  // READ - Get recent reviews (top 20 most recent)
+  // READ - Get recent reviews (top 20 most recent) with interactions
   static async findRecent(limit = 20) {
     try {
       const result = await query(
@@ -145,7 +219,9 @@ class Review {
          LIMIT $1`,
         [limit]
       );
-      return result.rows.map(row => new Review(row));
+      
+      const reviews = result.rows.map(row => new Review(row));
+      return await Review.addInteractionsToReviews(reviews);
     } catch (error) {
       throw new Error(`Error finding recent reviews: ${error.message}`);
     }
@@ -212,7 +288,7 @@ class Review {
     }
   }
 
-  // Get reviews by group members for group favorite movies
+  // Get reviews by group members for group favorite movies with interactions
   static async findByGroupFavorites(groupId) {
     try {
       const result = await query(
@@ -248,7 +324,9 @@ class Review {
          ORDER BY r.created_at DESC`,
         [groupId]
       );
-      return result.rows.map(row => new Review(row));
+      
+      const reviews = result.rows.map(row => new Review(row));
+      return await Review.addInteractionsToReviews(reviews);
     } catch (error) {
       throw new Error(`Error finding group reviews: ${error.message}`);
     }
