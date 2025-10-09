@@ -34,14 +34,15 @@ router.get('/by-genres', getGroupsByGenres);
 // Get all group themes
 router.get('/themes', getAllGroupThemes);
 
+// Get user's groups by user ID (ordered by role: owner, moderator, member)
+router.get('/user/:userId/groups', getUserGroups);
+
 // Get group details (public access)
 router.get('/:gID', getGroupDetails);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);
 
-// Get user's groups by user ID (ordered by role: owner, moderator, member)
-router.get('/user/:userId/groups', getUserGroups);
 
 // Create a new group
 router.post('/', createGroup);
