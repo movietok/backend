@@ -1,4 +1,4 @@
-import pool from '../config/database.js';
+import { query } from '../config/database.js';
 
 class TMDBService {
   constructor() {
@@ -152,7 +152,7 @@ class TMDBService {
    */
   async getMovieByFinnkinoId(finnkinoId) {
     try {
-      const result = await pool.query(`
+      const result = await query(`
         SELECT 
           id,
           original_title,
@@ -225,7 +225,7 @@ class TMDBService {
       });
 
       // First, try to update existing movie by tmdb_id
-      const updateResult = await pool.query(`
+      const updateResult = await query(`
         UPDATE movies 
         SET f_id = $1, 
             original_title = COALESCE($2, original_title),
@@ -237,7 +237,7 @@ class TMDBService {
 
       if (updateResult.rowCount === 0) {
         // No existing movie found by tmdb_id, so insert new one
-        await pool.query(`
+        await query(`
           INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
           VALUES ($1, $2, $3, $4, $5, $6)
           ON CONFLICT (id) 
@@ -343,7 +343,7 @@ class TMDBService {
       const tmdbIds = movies.map(movie => movie.id);
       
       // Query favorites table for users who have added these movies to favorites or watchlist
-      const favoritesResult = await pool.query(`
+      const favoritesResult = await query(`
         SELECT 
           f.tmdb_id,
           f.user_id,
