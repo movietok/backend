@@ -126,7 +126,7 @@ class TMDBService {
         // Use raw TMDB data for saving
         const movieToSave = {
           id: exactMatches[0].id,
-          original_title: exactMatches[0].title,
+          title: exactMatches[0].title,
           release_year: exactMatches[0].release_date ? 
             parseInt(exactMatches[0].release_date.split('-')[0]) : null,
           poster_path: exactMatches[0].poster_path
