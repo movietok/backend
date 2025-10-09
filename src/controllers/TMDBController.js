@@ -26,9 +26,25 @@ export const getMovieDetails = async (req, res) => {
       return res.status(400).json({ error: 'Movie ID is required' });
     }
 
-    const movie = await TMDBService.getMovieById(id);
+    let tmdbId = id;
 
-    // Save basic movie details to our database
+    // First, try to find movie in database by ID
+    // The ID might be our database ID (e.g., Finnkino ID), not TMDB ID
+    try {
+      const dbMovie = await Movie.findById(id);
+      if (dbMovie && dbMovie.tmdb_id) {
+        console.log(`Found movie in database with ID ${id}, using TMDB ID: ${dbMovie.tmdb_id}`);
+        tmdbId = dbMovie.tmdb_id;
+      }
+    } catch (dbError) {
+      console.log(`Movie not found in database with ID ${id}, trying TMDB directly`);
+      // If not in database, assume it's already a TMDB ID
+    }
+
+    // Fetch from TMDB using the resolved TMDB ID
+    const movie = await TMDBService.getMovieById(tmdbId);
+
+    // Save basic movie details to our database if not already there
     try {
       const savedMovie = await Movie.createFromTmdb(movie);
       if (savedMovie) {

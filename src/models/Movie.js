@@ -205,10 +205,8 @@ class Movie {
           tmdb_id,
           poster_url,
           f_id,
-          created_at
         FROM movies 
         WHERE f_id IS NOT NULL
-        ORDER BY created_at DESC
         LIMIT $1 OFFSET $2`,
         [limit, offset]
       );
