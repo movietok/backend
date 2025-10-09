@@ -195,10 +195,10 @@ class TMDBService {
   async saveMovieWithFinnkinoId(movie, finnkinoId) {
     try {
       // Validate required fields
-      if (!movie || !movie.id || !movie.title) {
+      if (!movie || !movie.id || !movie.original_title) {
         console.error('Cannot save movie: missing required fields', { 
           id: movie?.id, 
-          title: movie?.title 
+          title: movie?.original_title
         });
         return;
       }
@@ -208,7 +208,7 @@ class TMDBService {
       const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
       
       // Ensure we have valid data
-      const originalTitle = movie.title || 'Unknown';
+      const originalTitle = movie.original_title || 'Unknown';
       const releaseYear = movie.release_year || null;
       // Store full poster URL, not just the path
       const posterUrl = movie.poster_path 
