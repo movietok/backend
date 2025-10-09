@@ -1,4 +1,3 @@
-import pool from '../config/database.js';
 import Movie from '../models/Movie.js';
 
 class TMDBService {
@@ -149,32 +148,21 @@ class TMDBService {
 
   /**
    * Get movie from database by Finnkino ID
+   * Uses Movie model
    * @private
    */
   async getMovieByFinnkinoId(finnkinoId) {
     try {
-      const result = await pool.query(`
-        SELECT 
-          id,
-          original_title,
-          release_year,
-          tmdb_id,
-          poster_url,
-          f_id
-        FROM movies 
-        WHERE f_id = $1
-      `, [finnkinoId]);
+      const movie = await Movie.findByFinnkinoId(finnkinoId);
 
-      if (result.rows.length === 0) {
+      if (!movie) {
         return null;
       }
-
-      const movie = result.rows[0];
       
       // Format to match formatMovieList output (camelCase)
       return {
         id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
-        title: movie.original_title, // Using original_title as title
+        title: movie.original_title,
         originalTitle: movie.original_title,
         releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
         overview: null, // Not stored in database
@@ -191,6 +179,7 @@ class TMDBService {
 
   /**
    * Save movie to database with Finnkino ID
+   * Uses Movie model to check if movie exists by title and year first
    * @private
    */
   async saveMovieWithFinnkinoId(movie, finnkinoId) {
@@ -204,68 +193,30 @@ class TMDBService {
         return;
       }
 
-      // Use Finnkino ID as primary key if available, otherwise use TMDB ID with prefix
-      // This prioritizes Finnkino ID since it's the main integration point
-      const movieId = finnkinoId ? finnkinoId.toString() : `${movie.id}`;
-      
-      // Ensure we have valid data
-      const originalTitle = movie.title || 'Unknown';
-      const releaseYear = movie.release_year || null;
-      // Store full poster URL, not just the path
-      const posterUrl = movie.poster_path 
-        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
-        : null;
+      // Prepare movie data
+      const movieData = {
+        title: movie.title,
+        releaseYear: movie.release_year || null,
+        tmdbId: movie.id,
+        posterUrl: movie.poster_path 
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+          : null
+      };
 
-      console.log('Attempting to save movie with data:', {
-        movieId,
-        originalTitle,
-        releaseYear,
-        tmdb_id: movie.id,
-        posterUrl,
-        finnkinoId
-      });
+      // Use Movie model to upsert with Finnkino ID
+      // This will check if movie exists by title+year first
+      const savedMovie = await Movie.upsertWithFinnkinoId(movieData, finnkinoId);
 
-      // First, try to update existing movie by tmdb_id
-      const updateResult = await pool.query(`
-        UPDATE movies 
-        SET f_id = $1, 
-            original_title = COALESCE($2, original_title),
-            release_year = COALESCE($3, release_year),
-            poster_url = COALESCE($4, poster_url)
-        WHERE tmdb_id = $5
-        RETURNING id
-      `, [finnkinoId, originalTitle, releaseYear, posterUrl, movie.id]);
-
-      if (updateResult.rowCount === 0) {
-        // No existing movie found by tmdb_id, so insert new one
-        await pool.query(`
-          INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
-          VALUES ($1, $2, $3, $4, $5, $6)
-          ON CONFLICT (id) 
-          DO UPDATE SET 
-            f_id = EXCLUDED.f_id,
-            original_title = EXCLUDED.original_title,
-            release_year = EXCLUDED.release_year,
-            tmdb_id = EXCLUDED.tmdb_id,
-            poster_url = EXCLUDED.poster_url
-        `, [
-          movieId,
-          originalTitle,
-          releaseYear,
-          movie.id,
-          posterUrl,
-          finnkinoId
-        ]);
-      }
-
-      console.log(`Saved movie to database: ${originalTitle} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
-    } catch (error) {
-      // If there's a unique constraint violation on f_id, just log it
-      if (error.code === '23505') {
-        console.log(`Movie with f_id ${finnkinoId} or tmdb_id ${movie?.id} already exists in database`);
+      if (savedMovie) {
+        console.log(`✅ Movie saved/updated: ${movieData.title} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
       } else {
-        console.error('Error saving movie with Finnkino ID:', error);
+        console.log(`⚠️  Movie with f_id ${finnkinoId} already exists`);
       }
+
+      return savedMovie;
+    } catch (error) {
+      console.error('Error saving movie with Finnkino ID:', error);
+      throw error;
     }
   }
 
