@@ -204,7 +204,7 @@ class Movie {
           release_year,
           tmdb_id,
           poster_url,
-          f_id,
+          f_id
         FROM movies 
         WHERE f_id IS NOT NULL
         LIMIT $1 OFFSET $2`,
