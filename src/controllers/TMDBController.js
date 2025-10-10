@@ -100,7 +100,7 @@ export const discoverMovies = async (req, res) => {
 
 export const getMoviesByTitleAndYear = async (req, res) => {
   try {
-    const { originalTitle, year } = req.query;
+    const { originalTitle, year, f_id } = req.query;
 
     // Validate required parameters
     if (!originalTitle || !year) {
@@ -119,7 +119,19 @@ export const getMoviesByTitleAndYear = async (req, res) => {
       });
     }
 
-    const results = await TMDBService.searchByOriginalTitleAndYear(originalTitle, yearNum);
+    // Parse f_id if provided
+    const finnkinoId = f_id ? parseInt(f_id) : null;
+    
+    if (f_id && isNaN(finnkinoId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid f_id format. Must be a number'
+      });
+    }
+
+    console.log(`🎬 Searching movie: "${originalTitle}" (${yearNum})${finnkinoId ? ` with f_id: ${finnkinoId}` : ''}`);
+
+    const results = await TMDBService.searchByOriginalTitleAndYear(originalTitle, yearNum, finnkinoId);
     res.json({
       success: true,
       ...results
@@ -133,4 +145,43 @@ export const getMoviesByTitleAndYear = async (req, res) => {
   }
 };
 
+export const getMoviesInTheaters = async (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+
+    // Validate limit
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Limit must be between 1 and 100'
+      });
+    }
+
+    // Validate offset
+    const offsetNum = parseInt(offset);
+    if (isNaN(offsetNum) || offsetNum < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Offset must be 0 or greater'
+      });
+    }
+
+    const results = await TMDBService.getMoviesWithFinnkinoId({
+      limit: limitNum,
+      offset: offsetNum
+    });
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error) {
+    console.error('Error getting movies in theaters:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 

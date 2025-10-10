@@ -193,6 +193,134 @@ class Movie {
     }
   }
 
+  // Find movie by Finnkino ID
+  static async findByFinnkinoId(finnkinoId) {
+    try {
+      const result = await query(
+        `SELECT * FROM movies WHERE f_id = $1`,
+        [finnkinoId]
+      );
+      return result.rows.length > 0 ? new Movie(result.rows[0]) : null;
+    } catch (error) {
+      throw new Error(`Error finding movie by Finnkino ID: ${error.message}`);
+    }
+  }
+
+  // Find movie by original title and release year
+  static async findByTitleAndYear(originalTitle, releaseYear) {
+    try {
+      const result = await query(
+        `SELECT * FROM movies 
+         WHERE LOWER(original_title) = LOWER($1) 
+         AND release_year = $2
+         LIMIT 1`,
+        [originalTitle, releaseYear]
+      );
+      return result.rows.length > 0 ? new Movie(result.rows[0]) : null;
+    } catch (error) {
+      throw new Error(`Error finding movie by title and year: ${error.message}`);
+    }
+  }
+
+  // Update or create movie with Finnkino ID
+  static async upsertWithFinnkinoId(movieData, finnkinoId) {
+    try {
+      const { title, releaseYear, tmdbId, posterUrl } = movieData;
+
+      console.log('Upserting movie with Finnkino ID:', {
+        title,
+        releaseYear,
+        tmdbId,
+        finnkinoId
+      });
+
+      // First, try to find existing movie by original_title and release_year
+      const existingMovie = await Movie.findByTitleAndYear(title, releaseYear);
+
+      if (existingMovie) {
+        // Movie exists, update it with f_id
+        console.log(`Found existing movie (id: ${existingMovie.id}), adding f_id: ${finnkinoId}`);
+        
+        const result = await query(
+          `UPDATE movies 
+           SET f_id = $1,
+               tmdb_id = COALESCE($2, tmdb_id),
+               poster_url = COALESCE($3, poster_url)
+           WHERE id = $4
+           RETURNING *`,
+          [finnkinoId, tmdbId, posterUrl, existingMovie.id]
+        );
+
+        return new Movie(result.rows[0]);
+      } else {
+        // Movie doesn't exist, create new one with f_id as primary key
+        console.log(`Movie not found in database, creating new with f_id: ${finnkinoId}`);
+        
+        const result = await query(
+          `INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (id) DO UPDATE SET
+             f_id = EXCLUDED.f_id,
+             original_title = EXCLUDED.original_title,
+             release_year = EXCLUDED.release_year,
+             tmdb_id = EXCLUDED.tmdb_id,
+             poster_url = EXCLUDED.poster_url
+           RETURNING *`,
+          [finnkinoId.toString(), title, releaseYear, tmdbId, posterUrl, finnkinoId]
+        );
+
+        return new Movie(result.rows[0]);
+      }
+    } catch (error) {
+      // Handle unique constraint violations gracefully
+      if (error.code === '23505') {
+        console.log(`Movie with f_id ${finnkinoId} already exists`);
+        return null;
+      }
+      throw new Error(`Error upserting movie with Finnkino ID: ${error.message}`);
+    }
+  }
+
+  // Find all movies with Finnkino ID (movies currently in theaters)
+  static async findWithFinnkinoId({ limit = 100, offset = 0 } = {}) {
+    try {
+      // Get movies with f_id
+      const result = await query(
+        `SELECT 
+          id,
+          original_title,
+          release_year,
+          tmdb_id,
+          poster_url,
+          f_id
+        FROM movies 
+        WHERE f_id IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+
+      // Get total count
+      const countResult = await query(
+        `SELECT COUNT(*) as total
+        FROM movies 
+        WHERE f_id IS NOT NULL`
+      );
+
+      const total = parseInt(countResult.rows[0].total);
+
+      return {
+        movies: result.rows,
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total
+      };
+    } catch (error) {
+      throw new Error(`Error finding movies with Finnkino ID: ${error.message}`);
+    }
+  }
+
   // Create or update movie from TMDB data
   static async createFromTmdb(tmdbData) {
     try {
