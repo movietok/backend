@@ -445,9 +445,9 @@ export const getGroupFavorites = async (req, res) => {
         m.poster_url
       FROM favorites f
       LEFT JOIN movies m ON m.tmdb_id = f.tmdb_id
-      WHERE f.user_id = $1 AND f.type = $2
+      WHERE f.type = $1
       ORDER BY f.created_at DESC
-    `, [group.owner_id, FAVORITE_TYPES.GROUP_FAVORITES]);
+    `, [FAVORITE_TYPES.GROUP_FAVORITES]);
 
     res.json({
       success: true,
