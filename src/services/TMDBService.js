@@ -177,17 +177,19 @@ class TMDBService {
       if (result.rows.length === 0) {
         return null;
       }
+
+      const dbMovie = result.rows[0];
       
       // Format to match formatMovieList output (camelCase)
       return {
-        id: movie.tmdb_id || parseInt(movie.id.replace('tmdb_', '')),
-        title: movie.original_title,
-        originalTitle: movie.original_title,
-        releaseDate: movie.release_year ? `${movie.release_year}-01-01` : null,
+        id: dbMovie.tmdb_id || parseInt(dbMovie.id.replace('tmdb_', '')),
+        title: dbMovie.original_title,
+        originalTitle: dbMovie.original_title,
+        releaseDate: dbMovie.release_year ? `${dbMovie.release_year}-01-01` : null,
         overview: null, // Not stored in database
-        posterPath: movie.poster_url, // Already contains full URL from database
+        posterPath: dbMovie.poster_url, // Already contains full URL from database
         voteAverage: null, // Not stored in database
-        f_id: movie.f_id,
+        f_id: dbMovie.f_id,
         fromDatabase: true
       };
     } catch (error) {
@@ -222,38 +224,10 @@ class TMDBService {
           : null
       };
 
-      // First, try to update existing movie by tmdb_id
-      const updateResult = await query(`
-        UPDATE movies 
-        SET f_id = $1, 
-            original_title = COALESCE($2, original_title),
-            release_year = COALESCE($3, release_year),
-            poster_url = COALESCE($4, poster_url)
-        WHERE tmdb_id = $5
-        RETURNING id
-      `, [finnkinoId, originalTitle, releaseYear, posterUrl, movie.id]);
+      console.log('Saving movie to database:', { movieData, finnkinoId });
 
-      if (updateResult.rowCount === 0) {
-        // No existing movie found by tmdb_id, so insert new one
-        await query(`
-          INSERT INTO movies (id, original_title, release_year, tmdb_id, poster_url, f_id)
-          VALUES ($1, $2, $3, $4, $5, $6)
-          ON CONFLICT (id) 
-          DO UPDATE SET 
-            f_id = EXCLUDED.f_id,
-            original_title = EXCLUDED.original_title,
-            release_year = EXCLUDED.release_year,
-            tmdb_id = EXCLUDED.tmdb_id,
-            poster_url = EXCLUDED.poster_url
-        `, [
-          movieId,
-          originalTitle,
-          releaseYear,
-          movie.id,
-          posterUrl,
-          finnkinoId
-        ]);
-      }
+      // Use Movie model to insert or update with f_id
+      const savedMovie = await Movie.upsertWithFinnkinoId(movieData, finnkinoId);
 
       if (savedMovie) {
         console.log(`✅ Movie saved/updated: ${movieData.title} (f_id: ${finnkinoId}, tmdb_id: ${movie.id})`);
