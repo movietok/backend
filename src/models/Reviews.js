@@ -303,22 +303,23 @@ class Review {
          JOIN users u ON u.id = r.user_id
          LEFT JOIN movies m ON m.tmdb_id = r.movie_id::integer
          LEFT JOIN interactions i ON i.target_id = r.id AND i.target_type = 'review'
-         WHERE r.movie_id::text IN (
-           -- Get movies that are in group favorites
-           SELECT f.tmdb_id::text 
+         WHERE EXISTS (
+           -- Check that the movie is in this group's favorites
+           SELECT 1 
            FROM favorites f 
-           JOIN groups g ON g.owner_id = f.user_id 
-           WHERE g.id = $1 AND f.type = 3
+           WHERE f.tmdb_id::text = r.movie_id::text 
+           AND f.group_id = $1 
+           AND f.type = 3
          )
-         AND r.user_id IN (
-           -- Get group members (including owner)
-           SELECT gm.user_id 
+         AND EXISTS (
+           -- Check that the reviewer is a group member or owner
+           SELECT 1 
            FROM group_members gm 
-           WHERE gm.group_id = $1
+           WHERE gm.group_id = $1 AND gm.user_id = r.user_id
            UNION
-           SELECT g.owner_id 
+           SELECT 1 
            FROM groups g 
-           WHERE g.id = $1
+           WHERE g.id = $1 AND g.owner_id = r.user_id
          )
          GROUP BY r.id, r.movie_id, r.user_id, r.content, r.rating, r.created_at, r.updated_at, u.username, m.original_title, m.release_year, m.poster_url
          ORDER BY r.created_at DESC`,
