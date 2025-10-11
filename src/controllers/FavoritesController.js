@@ -254,9 +254,9 @@ export const removeFromFavorites = async (req, res) => {
       // Remove from favorites
       const result = await pool.query(`
         DELETE FROM favorites 
-        WHERE user_id = $1 AND tmdb_id = $2 AND type = $3
+        WHERE user_id = $1 AND tmdb_id = $2 AND type = $3 AND group_id = $4
         RETURNING *
-      `, [target_user_id, movie_id, typeInt]);
+      `, [target_user_id, movie_id, typeInt, group_id]);
 
       if (result.rows.length === 0) {
         return res.status(404).json({
