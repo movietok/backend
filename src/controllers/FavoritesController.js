@@ -268,12 +268,13 @@ export const removeFromFavorites = async (req, res) => {
       
       console.log('Debug - Current favorites in group:', debugQuery.rows);
 
-      // Remove from favorites
+      // Remove from favorites - for group favorites, we search by group_id and tmdb_id
+      // since the user_id might be different if group ownership changed
       const result = await pool.query(`
         DELETE FROM favorites 
-        WHERE user_id = $1 AND tmdb_id = $2 AND type = $3 AND group_id = $4
+        WHERE tmdb_id = $1 AND type = $2 AND group_id = $3
         RETURNING *
-      `, [target_user_id, movie_id, typeInt, group_id]);
+      `, [movie_id, typeInt, group_id]);
 
       if (result.rows.length === 0) {
         return res.status(404).json({
