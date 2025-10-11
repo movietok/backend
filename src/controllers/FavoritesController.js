@@ -218,32 +218,38 @@ export const removeFromFavorites = async (req, res) => {
         });
       }
 
-      // Check if user is group owner or admin
-      const isOwner = await pool.query(`
-        SELECT id FROM groups WHERE id = $1 AND owner_id = $2
+      // Check if user is group owner, moderator, or admin
+      const groupCheck = await pool.query(`
+        SELECT g.owner_id, gm.role
+        FROM groups g
+        LEFT JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = $2
+        WHERE g.id = $1
       `, [group_id, user_id]);
 
-      const isAdmin = await pool.query(`
-        SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'
-      `, [user_id]);
-
-      if (isOwner.rows.length === 0 && isAdmin.rows.length === 0) {
-        return res.status(403).json({
-          success: false,
-          error: 'Only group owners and admins can remove movies from group favorites'
-        });
-      }
-
-      // Get group owner's user_id for the favorites table
-      const groupOwner = await pool.query('SELECT owner_id FROM groups WHERE id = $1', [group_id]);
-      if (groupOwner.rows.length === 0) {
+      if (groupCheck.rows.length === 0) {
         return res.status(404).json({
           success: false,
           error: 'Group not found'
         });
       }
 
-      const target_user_id = groupOwner.rows[0].owner_id;
+      const group = groupCheck.rows[0];
+      const isOwner = group.owner_id === user_id;
+      const isModerator = group.role === 'moderator';
+
+      const isAdmin = await pool.query(`
+        SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'
+      `, [user_id]);
+
+      if (!isOwner && !isModerator && isAdmin.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'Only group owners, moderators, and admins can remove movies from group favorites'
+        });
+      }
+
+      // Get group owner's user_id for the favorites table
+      const target_user_id = group.owner_id;
 
       // Remove from favorites
       const result = await pool.query(`
