@@ -382,11 +382,10 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
+            (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.role != 'pending') AS member_count,
             COALESCE(array_agg(DISTINCT t.genre_id) FILTER (WHERE t.genre_id IS NOT NULL), '{}') AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
-          LEFT JOIN group_members gm ON g.id = gm.group_id
           LEFT JOIN tags t ON g.id = t.group_id
           WHERE g.visibility IN ('public', 'private')
           GROUP BY g.id, u.username
@@ -418,11 +417,10 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
+            (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.role != 'pending') AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
-          LEFT JOIN group_members gm ON g.id = gm.group_id
           JOIN tags t ON g.id = t.group_id
           WHERE t.genre_id = ANY($1)
             AND g.visibility IN ('public', 'private')
@@ -444,11 +442,10 @@ class Group {
             g.created_at,
             g.owner_id,
             u.username AS owner_name,
-            COUNT(CASE WHEN gm.role != 'pending' THEN gm.user_id END) AS member_count,
+            (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.role != 'pending') AS member_count,
             array_agg(DISTINCT t.genre_id) AS genre_tags
           FROM groups g
           JOIN users u ON g.owner_id = u.id
-          LEFT JOIN group_members gm ON g.id = gm.group_id
           JOIN tags t ON g.id = t.group_id
           WHERE g.id IN (
             SELECT group_id 
