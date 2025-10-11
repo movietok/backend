@@ -251,6 +251,23 @@ export const removeFromFavorites = async (req, res) => {
       // Get group owner's user_id for the favorites table
       const target_user_id = group.owner_id;
 
+      // Debug logging to see what we're working with
+      console.log('Debug - Removal parameters:', {
+        target_user_id,
+        movie_id,
+        typeInt,
+        group_id
+      });
+
+      // Check what's actually in the database for this group
+      const debugQuery = await pool.query(`
+        SELECT id, user_id, tmdb_id, type, group_id 
+        FROM favorites 
+        WHERE group_id = $1 AND type = $2
+      `, [group_id, typeInt]);
+      
+      console.log('Debug - Current favorites in group:', debugQuery.rows);
+
       // Remove from favorites
       const result = await pool.query(`
         DELETE FROM favorites 
