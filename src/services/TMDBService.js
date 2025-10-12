@@ -82,7 +82,12 @@ class TMDBService {
         append_to_response: 'credits,videos,similar'
       });
 
-      return this.formatMovieDetails(data);
+      const formattedMovie = this.formatMovieDetails(data);
+      
+      // Add favorites data to the movie
+      const movieWithFavorites = await this.addFavoritesDataToMovies([formattedMovie]);
+      
+      return movieWithFavorites[0];
     } catch (error) {
       throw new Error(`Failed to get movie details: ${error.message}`);
     }
