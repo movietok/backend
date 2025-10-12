@@ -412,9 +412,9 @@ class TMDBService {
         
         // Set the appropriate flag based on type
         if (row.type === 1) {
-          favoritesByMovie[row.tmdb_id][row.user_id].isFavorite = true;
-        } else if (row.type === 2) {
           favoritesByMovie[row.tmdb_id][row.user_id].isWatchlist = true;
+        } else if (row.type === 2) {
+          favoritesByMovie[row.tmdb_id][row.user_id].isFavorite = true;
         }
       });
 
