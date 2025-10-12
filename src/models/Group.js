@@ -137,8 +137,21 @@ class Group {
           [gID]
         );
 
-        // Combine group details with members
+        // Get group genres/tags with genre names
+        const genresResult = await query(
+          `SELECT 
+            t.genre_id,
+            g.name AS genre_name
+          FROM tags t
+          JOIN genres g ON t.genre_id = g.id
+          WHERE t.group_id = $1
+          ORDER BY g.name ASC`,
+          [gID]
+        );
+
+        // Combine group details with members and genres
         group.members = membersResult.rows;
+        group.genres = genresResult.rows;
 
         await query('COMMIT');
         return group;
