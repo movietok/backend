@@ -1004,7 +1004,9 @@ class Group {
           throw new Error('Group not found');
         }
 
-        if (groupCheck.rows[0].owner_id !== ownerId) {
+        // Ensure ownerId is integer for comparison
+        const ownerIdInt = parseInt(ownerId);
+        if (groupCheck.rows[0].owner_id !== ownerIdInt) {
           throw new Error('Only the group owner can update group details');
         }
 
@@ -1107,7 +1109,7 @@ class Group {
           // Add WHERE clause parameters
           const whereParamStart = paramCount;
           const whereParamNext = paramCount + 1;
-          values.push(gID, ownerId);
+          values.push(gID, ownerIdInt);
           const whereClause = `WHERE id = $${whereParamStart} AND owner_id = $${whereParamNext}`;
 
           // Execute update
@@ -1132,7 +1134,7 @@ class Group {
           // If only tags are being updated, get current group data
           const groupResult = await query(
             'SELECT id, name, description, theme_id, visibility, poster_url, created_at, owner_id FROM groups WHERE id = $1 AND owner_id = $2',
-            [gID, ownerId]
+            [gID, ownerIdInt]
           );
           
           if (groupResult.rows.length === 0) {
@@ -1145,7 +1147,7 @@ class Group {
         // Get owner name
         const ownerInfo = await query(
           'SELECT username FROM users WHERE id = $1',
-          [ownerId]
+          [ownerIdInt]
         );
 
         updatedGroup.owner_name = ownerInfo.rows[0]?.username;
@@ -1174,7 +1176,7 @@ class Group {
 
         await query('COMMIT');
 
-        console.log(`Group ${gID} details updated by owner ${ownerId}:`, {
+        console.log(`Group ${gID} details updated by owner ${ownerIdInt}:`, {
           updatedFields: Object.keys(updates),
           values: updates
         });
