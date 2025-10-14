@@ -75,19 +75,6 @@ class UserService {
     }
   }
 
-  // Hae käyttäjän profiili
-  static async getProfile(userId) {
-    try {
-      const user = await User.findById(userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
-      return user.toPublicObject();
-    } catch (error) {
-      throw new Error(`Failed to get profile: ${error.message}`);
-    }
-  }
-
   // Päivitä käyttäjän profiili
   static async updateProfile(userId, updateData) {
     try {

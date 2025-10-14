@@ -61,19 +61,6 @@ class UserController {
     }
   }
 
-  // GET /api/users/profile - Hae käyttäjän profiili (suojattu)
-  static async getProfile(req, res) {
-    try {
-      const user = await UserService.getProfile(req.user.id);
-      res.json({ user });
-    } catch (error) {
-      res.status(404).json({
-        error: 'Profile not found',
-        message: error.message
-      });
-    }
-  }
-
   // PUT /api/users/profile - Päivitä käyttäjän profiili (suojattu)
   static async updateProfile(req, res) {
     try {
