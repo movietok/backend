@@ -26,7 +26,7 @@ const router = express.Router();
 router.get('/popular', getPopularGroups);
 
 // Search groups
-router.get('/search', searchGroups);
+//router.get('/search', searchGroups);
 
 // Get groups by genre tags
 router.get('/by-genres', getGroupsByGenres);
