@@ -234,7 +234,7 @@ export const removeFromFavorites = async (req, res) => {
       }
 
       const group = groupCheck.rows[0];
-      const isOwner = group.owner_id === user_id;
+      const isOwner = parseInt(group.owner_id) === parseInt(user_id);
       const isModerator = group.role === 'moderator';
 
       const isAdmin = await pool.query(`

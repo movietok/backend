@@ -607,7 +607,7 @@ class Group {
           [groupId, approverId]
         );
 
-        const isOwner = group.owner_id === approverId;
+        const isOwner = parseInt(group.owner_id) === parseInt(approverId);
         const isModerator = approverCheck.rows.length > 0 && approverCheck.rows[0].role === 'moderator';
 
         if (!isOwner && !isModerator) {
@@ -1330,7 +1330,7 @@ class Group {
         [groupId, requesterId]
       );
 
-      const isOwner = group.owner_id === requesterId;
+      const isOwner = parseInt(group.owner_id) === parseInt(requesterId);
       const isModerator = requesterCheck.rows.length > 0 && requesterCheck.rows[0].role === 'moderator';
 
       if (!isOwner && !isModerator) {
