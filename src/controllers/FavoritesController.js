@@ -352,7 +352,7 @@ export const getUserFavorites = async (req, res) => {
         SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'
       `, [current_user_id]);
 
-      if (parseInt(user_id) !== current_user_id && isAdmin.rows.length === 0) {
+      if (parseInt(user_id) !== parseInt(current_user_id) && isAdmin.rows.length === 0) {
         return res.status(403).json({
           success: false,
           error: 'You can only view your own watchlist'
