@@ -808,7 +808,7 @@ class Group {
         );
 
         // Authorization logic - only owners and moderators can remove members
-        const isOwner = requestingUserId === groupOwnerId;
+        const isOwner = parseInt(requestingUserId) === parseInt(groupOwnerId);
         const isModerator = requestingUserRole.rows.length > 0 && requestingUserRole.rows[0].role === 'moderator';
 
         // Check if the requesting user has permission to remove the member
@@ -817,12 +817,12 @@ class Group {
         }
 
         // Prevent removing the group owner
-        if (userIdToRemove === groupOwnerId) {
+        if (parseInt(userIdToRemove) === parseInt(groupOwnerId)) {
           throw new Error('Cannot remove the group owner');
         }
 
         // Prevent users from removing themselves (they should use the leave endpoint)
-        if (requestingUserId === userIdToRemove) {
+        if (parseInt(requestingUserId) === parseInt(userIdToRemove)) {
           throw new Error('Use the leave group endpoint to remove yourself from the group');
         }
 
@@ -899,7 +899,7 @@ class Group {
           throw new Error('Group not found');
         }
 
-        if (groupCheck.rows[0].owner_id !== ownerId) {
+        if (parseInt(groupCheck.rows[0].owner_id) !== parseInt(ownerId)) {
           throw new Error('Only the group owner can update member roles');
         }
 
