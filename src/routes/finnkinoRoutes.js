@@ -1,4 +1,4 @@
-import express from 'express';
+/*import express from 'express';
 import FinnkinoController from '../controllers/FinnkinoController.js';
 
 const router = express.Router();
@@ -22,4 +22,4 @@ router.get('/popular', FinnkinoController.getPopularEvents);
 router.get('/coming-soon', FinnkinoController.getComingSoonEvents);
 router.get('/now-showing', FinnkinoController.getNowShowingEvents);
 
-export default router;
+export default router;*/
