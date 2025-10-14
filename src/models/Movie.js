@@ -295,7 +295,6 @@ class Movie {
           f_id
         FROM movies 
         WHERE f_id IS NOT NULL
-        ORDER BY created_at DESC
         LIMIT $1 OFFSET $2`,
         [limit, offset]
       );
