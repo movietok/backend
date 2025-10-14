@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import Movie from '../models/Movie.js';
 
 class TMDBService {
   constructor() {
@@ -276,11 +277,11 @@ class TMDBService {
   /**
    * Get all movies from database that have Finnkino ID
    * @param {Object} options - Query options
-   * @param {number} [options.limit=10] - Maximum number of movies to return
+   * @param {number} [options.limit=100] - Maximum number of movies to return
    * @param {number} [options.offset=0] - Number of movies to skip
    * @returns {Promise<Object>} - Movies with Finnkino ID
    */
-  async getMoviesWithFinnkinoId({ limit = 10, offset = 0 } = {}) {
+  async getMoviesWithFinnkinoId({ limit = 100, offset = 0 } = {}) {
     try {
       // Use Movie model to fetch movies with Finnkino ID
       const result = await Movie.findWithFinnkinoId({ limit, offset });
