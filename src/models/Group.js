@@ -189,7 +189,7 @@ class Group {
         }
 
         // If group exists, check ownership
-        if (groupCheck.rows[0].owner_id !== ownerId) {
+        if (parseInt(groupCheck.rows[0].owner_id) !== parseInt(ownerId)) {
           console.error(`Delete group failed: User ${ownerId} is not the owner of group ${gID}`);
           throw new Error('User is not the owner of this group');
         }
