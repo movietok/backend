@@ -12,7 +12,7 @@ router.get('/:id', UserController.getUserById);
 router.use(authenticateToken); // Kaikki alla olevat reitit vaativat autentikoinnin
 
 // Käyttäjän omat tiedot
-router.get('/profile', UserController.getProfile);
+//router.get('/profile', UserController.getProfile);
 router.put('/profile', UserController.updateProfile);
 router.delete('/profile', UserController.deleteProfile);
 
