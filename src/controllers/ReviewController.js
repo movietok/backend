@@ -194,7 +194,7 @@ export const updateReview = async (req, res) => {
       });
     }
 
-    if (existingReview.user_id !== userId) {
+    if (parseInt(existingReview.user_id) !== parseInt(userId)) {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to update this review'
@@ -243,7 +243,7 @@ export const deleteReview = async (req, res) => {
       });
     }
 
-    if (existingReview.user_id !== userId) {
+    if (parseInt(existingReview.user_id) !== parseInt(userId)) {
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to delete this review'
